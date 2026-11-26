@@ -1,3 +1,4 @@
+import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -11,7 +12,7 @@ plugins {
 // en ~/.gradle/gradle.properties y en variables de entorno. El repositorio nunca contiene llaves
 // ni contraseñas.
 val archivoKeystore = rootProject.file("keystore.properties")
-val propiedadesKeystore = java.util.Properties().apply {
+val propiedadesKeystore = Properties().apply {
     if (archivoKeystore.exists()) archivoKeystore.inputStream().use { load(it) }
 }
 
