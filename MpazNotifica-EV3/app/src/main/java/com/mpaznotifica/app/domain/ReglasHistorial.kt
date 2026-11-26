@@ -3,62 +3,150 @@ package com.mpaznotifica.app.domain
 import com.mpaznotifica.app.model.Comunicacion
 import com.mpaznotifica.app.model.TipoComunicacion
 
-/** Filtros del historial (RF-10). Las fechas son "AAAA-MM-DD"; null significa "sin filtro". */
+/**
+ * Filtros del historial (RF-10).
+ * null significa que el filtro no está activo.
+ */
 data class FiltrosHistorial(
     val tipo: TipoComunicacion? = null,
     val emisorId: String? = null,
     val desde: String? = null,
     val hasta: String? = null
 ) {
+
+    // Cuenta la cantidad de filtros activos.
     val cantidadActivos: Int
-        get() = listOf(tipo, emisorId, desde, hasta).count { it != null }
+        get() = listOf(tipo, emisorId, desde, hasta)
+            .count { it != null }
 }
 
-/** Reglas de la bitácora (RF-09, RF-10), sin dependencias de Android. */
+/**
+ * Reglas del historial independientes de Android.
+ *
+ * EV3: valida fechas reales y rangos cronológicos.
+ */
 object ReglasHistorial {
 
-    const val MSG_FECHAS_INVERTIDAS = "La fecha Desde no puede ser posterior a la fecha Hasta"
-    const val MSG_FORMATO_FECHA = "Usa el formato AAAA-MM-DD"
+    const val MSG_FECHAS_INVERTIDAS =
+        "La fecha Desde no puede ser posterior a la fecha Hasta"
 
-    private val regexFecha = Regex("""^\d{4}-\d{2}-\d{2}$""")
+    const val MSG_FORMATO_FECHA =
+        "Usa el formato AAAA-MM-DD"
 
-    /** Fecha real del calendario (descarta 2026-02-31). */
+    private val regexFecha =
+        Regex("""^\d{4}-\d{2}-\d{2}$""")
+
+    // Comprueba que la fecha exista en el calendario.
     fun fechaValida(texto: String): Boolean {
-        if (!regexFecha.matches(texto)) return false
+
+        if (!regexFecha.matches(texto)) {
+            return false
+        }
+
         val anio = texto.substring(0, 4).toInt()
         val mes = texto.substring(5, 7).toInt()
         val dia = texto.substring(8, 10).toInt()
-        if (mes !in 1..12) return false
-        val bisiesto = (anio % 4 == 0 && anio % 100 != 0) || anio % 400 == 0
+
+        // Rechaza años y meses incorrectos.
+        if (anio == 0 || mes !in 1..12) {
+            return false
+        }
+
+        // Comprueba si el año es bisiesto.
+        val bisiesto =
+            (anio % 4 == 0 && anio % 100 != 0) ||
+                    anio % 400 == 0
+
         val diasDelMes = when (mes) {
+
             2 -> if (bisiesto) 29 else 28
+
             4, 6, 9, 11 -> 30
+
             else -> 31
         }
+
         return dia in 1..diasDelMes
     }
 
-    fun errorFechas(desde: String?, hasta: String?): String? {
+    // Comprueba el formato y orden de las fechas.
+    fun errorFechas(
+        desde: String?,
+        hasta: String?
+    ): String? {
+
         val d = desde?.trim().orEmpty()
         val h = hasta?.trim().orEmpty()
-        if ((d.isNotEmpty() && !fechaValida(d)) || (h.isNotEmpty() && !fechaValida(h))) return MSG_FORMATO_FECHA
-        if (d.isNotEmpty() && h.isNotEmpty() && d > h) return MSG_FECHAS_INVERTIDAS
+
+        if (
+            (d.isNotEmpty() && !fechaValida(d)) ||
+            (h.isNotEmpty() && !fechaValida(h))
+        ) {
+            return MSG_FORMATO_FECHA
+        }
+
+        // Impide que la fecha inicial supere a la final.
+        if (
+            d.isNotEmpty() &&
+            h.isNotEmpty() &&
+            d > h
+        ) {
+            return MSG_FECHAS_INVERTIDAS
+        }
+
         return null
     }
 
-    /**
-     * Aplica los filtros combinados (AND) y ordena del más reciente al más antiguo. Si el rango
-     * de fechas es inválido, las fechas no se aplican (la pantalla muestra el error).
-     */
-    fun aplicar(todos: List<Comunicacion>, filtros: FiltrosHistorial): List<Comunicacion> {
-        val usarFechas = errorFechas(filtros.desde, filtros.hasta) == null
-        val desde = filtros.desde?.trim()?.takeIf { usarFechas && it.isNotEmpty() }
-        val hasta = filtros.hasta?.trim()?.takeIf { usarFechas && it.isNotEmpty() }
+    // Aplica los filtros y ordena los comunicados.
+    fun aplicar(
+        todos: List<Comunicacion>,
+        filtros: FiltrosHistorial
+    ): List<Comunicacion> {
+
+        // Si hay un error, no aplica el rango de fechas.
+        val usarFechas =
+            errorFechas(
+                filtros.desde,
+                filtros.hasta
+            ) == null
+
+        val desde = filtros.desde?.trim()?.takeIf {
+            usarFechas && it.isNotEmpty()
+        }
+
+        val hasta = filtros.hasta?.trim()?.takeIf {
+            usarFechas && it.isNotEmpty()
+        }
+
         return todos
-            .filter { filtros.tipo == null || it.tipo == filtros.tipo }
-            .filter { filtros.emisorId == null || it.autorId == filtros.emisorId }
-            .filter { desde == null || it.fechaHora.take(10) >= desde }
-            .filter { hasta == null || it.fechaHora.take(10) <= hasta }
-            .sortedByDescending { it.fechaHora }
+
+            // Filtra por tipo de comunicado.
+            .filter {
+                filtros.tipo == null ||
+                        it.tipo == filtros.tipo
+            }
+
+            // Filtra por usuario emisor.
+            .filter {
+                filtros.emisorId == null ||
+                        it.autorId == filtros.emisorId
+            }
+
+            // Aplica la fecha inicial.
+            .filter {
+                desde == null ||
+                        it.fechaHora.take(10) >= desde
+            }
+
+            // Aplica la fecha final.
+            .filter {
+                hasta == null ||
+                        it.fechaHora.take(10) <= hasta
+            }
+
+            // Ordena del más reciente al más antiguo.
+            .sortedByDescending {
+                it.fechaHora
+            }
     }
 }

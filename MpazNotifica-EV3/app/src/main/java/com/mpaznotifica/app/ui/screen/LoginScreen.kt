@@ -10,6 +10,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -61,57 +62,79 @@ import com.mpaznotifica.app.ui.components.apoyo
 import com.mpaznotifica.app.viewmodel.MpazNotificaViewModel
 
 /**
- * Pantalla de autenticación (RF-01): inicio de sesión diferenciado por perfil.
+ * RF-01: autenticación diferenciada por perfil.
  *
- * - Valida cada campo por separado (correo con formato válido, clave obligatoria) y muestra el
- *   error bajo el campo con ícono.
- * - Modo local: las credenciales se contrastan con los usuarios de la base local (la clave se
- *   compara por hash, no en texto plano).
- * - Modo servidor: se validan en el servidor (POST /auth/login); sin conexión, el ViewModel usa
- *   como respaldo los usuarios guardados en Room. El botón "Servidor" abre el diálogo para
- *   cambiar la dirección de la API sin recompilar la app.
- * - El interruptor "Modo local (sin servidor)" cambia de modo en cualquier momento; en esta
- *   pantalla va aparte del diálogo "Servidor", que depende de los TODO(E3-9) y solo existe en
- *   modo servidor.
- * - El perfil (Inspectoría General o Profesor/a Jefe) lo determina el usuario encontrado.
+ * Modo local: valida las credenciales almacenadas en Room.
+ * Modo servidor: utiliza la autenticación remota.
+ *
+ * EV3: errores por campo, iconos y animaciones.
  */
 @Composable
 fun LoginScreen(
     viewModel: MpazNotificaViewModel,
     onIngresar: () -> Unit
 ) {
+
+    // Estado de los campos del formulario.
     var usuario by remember { mutableStateOf("") }
     var clave by remember { mutableStateOf("") }
-    var claveVisible by remember { mutableStateOf(false) }
-    var contenidoVisible by remember { mutableStateOf(false) }
-    var mostrarServidor by rememberSaveable { mutableStateOf(false) }
 
+    // Controla la visibilidad de la contraseña.
+    var claveVisible by remember { mutableStateOf(false) }
+
+    // Controla la animación de entrada.
+    var contenidoVisible by remember { mutableStateOf(false) }
+
+    var mostrarServidor by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    // Obtiene los estados del ViewModel.
     val errores by viewModel.erroresLogin.collectAsState()
     val errorCredenciales by viewModel.errorCredenciales.collectAsState()
     val ingresando by viewModel.ingresando.collectAsState()
     val urlServidor by viewModel.urlServidor.collectAsState()
     val modoLocal by viewModel.modoLocal.collectAsState()
+
     val foco = LocalFocusManager.current
 
     val errorUsuario = errores.usuario
     val errorClave = errores.clave
 
-    LaunchedEffect(Unit) { contenidoVisible = true }
-
-    fun ingresar() {
-        foco.clearFocus()
-        viewModel.iniciarSesion(usuario, clave, onIngresar)
+    // Activa la animación al mostrar la pantalla.
+    LaunchedEffect(Unit) {
+        contenidoVisible = true
     }
 
-    // Si se pasa a modo local con el diálogo abierto, se cierra (y no reaparece al volver).
-    LaunchedEffect(modoLocal) { if (modoLocal) mostrarServidor = false }
+    // Envía las credenciales al ViewModel.
+    fun ingresar() {
+        foco.clearFocus()
+        viewModel.iniciarSesion(
+            usuario,
+            clave,
+            onIngresar
+        )
+    }
 
-    // El diálogo "Servidor" solo existe en modo servidor.
+    // Cierra el diálogo del servidor al cambiar a modo local.
+    LaunchedEffect(modoLocal) {
+        if (modoLocal) {
+            mostrarServidor = false
+        }
+    }
+
     if (!modoLocal && mostrarServidor) {
-        DialogoServidor(viewModel = viewModel, onCerrar = { mostrarServidor = false })
+
+        DialogoServidor(
+            viewModel = viewModel,
+            onCerrar = {
+                mostrarServidor = false
+            }
+        )
     }
 
     Scaffold { padding ->
+
         Column(
             modifier = Modifier
                 .padding(padding)
@@ -122,35 +145,71 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+
+            // Animación de entrada del formulario.
             AnimatedVisibility(
                 visible = contenidoVisible,
-                enter = fadeIn(animationSpec = tween(500)) +
-                    slideInVertically(animationSpec = tween(500)) { alto -> alto / 6 }
+                enter = fadeIn(
+                    animationSpec = tween(500)
+                ) + slideInVertically(
+                    animationSpec = tween(500)
+                ) { alto ->
+                    alto / 6
+                }
             ) {
+
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+
+                    // Logotipo de la aplicación.
                     Image(
-                        painter = painterResource(id = R.drawable.logo_app),
+                        painter = painterResource(
+                            id = R.drawable.logo_app
+                        ),
                         contentDescription = "Logo de MPAZ Notifica",
                         modifier = Modifier.size(110.dp)
                     )
-                    Text(text = "MPAZ Notifica", style = MaterialTheme.typography.headlineMedium)
+
+                    Text(
+                        text = "MPAZ Notifica",
+                        style = MaterialTheme.typography.headlineMedium
+                    )
+
                     Text(
                         text = "Ingreso de personal docente y directivo",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
+                    // Campo de correo institucional.
                     OutlinedTextField(
                         value = usuario,
+
                         onValueChange = {
                             usuario = it
-                            if (errorUsuario != null || errorCredenciales != null) viewModel.limpiarErroresLogin()
+
+                            if (
+                                errorUsuario != null ||
+                                errorCredenciales != null
+                            ) {
+                                viewModel.limpiarErroresLogin()
+                            }
                         },
-                        label = { Text("Correo institucional") },
-                        leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null) },
+
+                        label = {
+                            Text("Correo institucional")
+                        },
+
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.Email,
+                                contentDescription = null
+                            )
+                        },
+
+                        // Muestra el icono cuando existe un error.
                         trailingIcon = if (errorUsuario != null) {
                             {
                                 Icon(
@@ -162,50 +221,125 @@ fun LoginScreen(
                         } else {
                             null
                         },
+
                         isError = errorUsuario != null,
                         supportingText = apoyo(errorUsuario),
                         singleLine = true,
+
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Email,
                             imeAction = ImeAction.Next
                         ),
-                        keyboardActions = KeyboardActions(onNext = { foco.moveFocus(FocusDirection.Down) }),
+
+                        keyboardActions = KeyboardActions(
+                            onNext = {
+                                foco.moveFocus(FocusDirection.Down)
+                            }
+                        ),
+
                         modifier = Modifier.fillMaxWidth()
                     )
 
+                    // Campo de contraseña.
                     OutlinedTextField(
                         value = clave,
+
                         onValueChange = {
                             clave = it
-                            if (errorClave != null || errorCredenciales != null) viewModel.limpiarErroresLogin()
-                        },
-                        label = { Text("Clave de acceso") },
-                        leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null) },
-                        trailingIcon = {
-                            IconButton(onClick = { claveVisible = !claveVisible }) {
-                                Icon(
-                                    imageVector = if (claveVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                    contentDescription = if (claveVisible) "Ocultar clave" else "Mostrar clave"
-                                )
+
+                            if (
+                                errorClave != null ||
+                                errorCredenciales != null
+                            ) {
+                                viewModel.limpiarErroresLogin()
                             }
                         },
+
+                        label = {
+                            Text("Clave de acceso")
+                        },
+
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.Lock,
+                                contentDescription = null
+                            )
+                        },
+
+                        trailingIcon = {
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+
+                                // EV3: muestra el error sin quitar el botón del ojo.
+                                if (errorClave != null) {
+
+                                    Icon(
+                                        imageVector = Icons.Filled.ErrorOutline,
+                                        contentDescription = "Error en la clave",
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
+
+                                // Permite mostrar u ocultar la contraseña.
+                                IconButton(
+                                    onClick = {
+                                        claveVisible = !claveVisible
+                                    }
+                                ) {
+
+                                    Icon(
+                                        imageVector = if (claveVisible) {
+                                            Icons.Filled.VisibilityOff
+                                        } else {
+                                            Icons.Filled.Visibility
+                                        },
+
+                                        contentDescription = if (claveVisible) {
+                                            "Ocultar clave"
+                                        } else {
+                                            "Mostrar clave"
+                                        }
+                                    )
+                                }
+                            }
+                        },
+
+                        // Destaca el campo y muestra su mensaje.
                         isError = errorClave != null,
                         supportingText = apoyo(errorClave),
                         singleLine = true,
-                        visualTransformation = if (claveVisible) VisualTransformation.None else PasswordVisualTransformation(),
+
+                        visualTransformation = if (claveVisible) {
+                            VisualTransformation.None
+                        } else {
+                            PasswordVisualTransformation()
+                        },
+
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password,
                             imeAction = ImeAction.Done
                         ),
-                        keyboardActions = KeyboardActions(onDone = { ingresar() }),
+
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                ingresar()
+                            }
+                        ),
+
                         modifier = Modifier.fillMaxWidth()
                     )
 
+                    // Anima el mensaje de credenciales incorrectas.
                     AnimatedVisibility(
                         visible = errorCredenciales != null,
-                        enter = fadeIn(tween(250)) + expandVertically(tween(250)),
-                        exit = fadeOut(tween(200)) + shrinkVertically(tween(200))
+                        enter = fadeIn(tween(250)) +
+                                expandVertically(tween(250)),
+                        exit = fadeOut(tween(200)) +
+                                shrinkVertically(tween(200))
                     ) {
+
                         AvisoCard(
                             texto = errorCredenciales.orEmpty(),
                             icono = Icons.Filled.ErrorOutline,
@@ -213,30 +347,53 @@ fun LoginScreen(
                         )
                     }
 
+                    // Impide realizar dos inicios de sesión simultáneos.
                     Button(
-                        onClick = { ingresar() },
+                        onClick = {
+                            ingresar()
+                        },
                         enabled = !ingresando,
                         modifier = Modifier.fillMaxWidth()
                     ) {
+
+                        // Muestra un indicador mientras valida las credenciales.
                         if (ingresando) {
+
                             CircularProgressIndicator(
                                 modifier = Modifier.size(18.dp),
                                 strokeWidth = 2.dp,
                                 color = MaterialTheme.colorScheme.onPrimary
                             )
+
                         } else {
+
                             Text("Ingresar")
                         }
                     }
 
+                    // Configuración del servidor, solo en modo remoto.
                     if (!modoLocal) {
-                        TextButton(onClick = { mostrarServidor = true }) {
-                            Icon(Icons.Filled.Dns, contentDescription = null, modifier = Modifier.size(18.dp))
+
+                        TextButton(
+                            onClick = {
+                                mostrarServidor = true
+                            }
+                        ) {
+
+                            Icon(
+                                Icons.Filled.Dns,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+
                             Text("  Servidor: $urlServidor")
                         }
                     }
 
-                    InterruptorModoLocal(viewModel = viewModel)
+                    // Permite seleccionar el modo de funcionamiento.
+                    InterruptorModoLocal(
+                        viewModel = viewModel
+                    )
                 }
             }
         }

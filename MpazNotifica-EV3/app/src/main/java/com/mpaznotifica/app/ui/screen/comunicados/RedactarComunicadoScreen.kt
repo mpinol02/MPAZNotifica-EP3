@@ -83,76 +83,158 @@ import com.mpaznotifica.app.viewmodel.MpazNotificaViewModel
 import kotlinx.coroutines.launch
 
 /**
- * Redacción y envío de comunicados (RF-02 a RF-08, RF-12).
+ * Redacción y envío de comunicados.
  *
- * - Asunto, cuerpo, tipo y adjunto PDF opcional (selector de archivos del sistema).
- * - Tipos, alcances y destinos según el perfil: el Profesor/a Jefe solo ve su curso.
- * - Validación por campo (isError + supportingText + ícono) una vez intentado el envío.
- * - Casilla de autorización con firma física: aviso animado de rol solo informativo.
- * - Confirmación previa, progreso del despacho simulado y alerta con el resultado, acompañada
- *   de vibración y notificación local.
+ * RF-02 a RF-08: formulario, permisos y despacho.
+ * RF-12: autorización con firma física.
+ *
+ * EV3:
+ * - Validaciones por campo.
+ * - Animaciones del formulario.
+ * - Progreso del despacho y almacenamiento.
+ * - Confirmación y resultado del envío.
  */
 @Composable
 fun RedactarComunicadoScreen(
     navController: NavHostController,
     viewModel: MpazNotificaViewModel
 ) {
+
+    // Obtiene el contexto y los estados del ViewModel.
     val context = LocalContext.current
     val usuario by viewModel.usuarioActivo.collectAsState()
     val datos by viewModel.datos.collectAsState()
     val estadoEnvio by viewModel.envioUi.collectAsState()
+    val modoLocal by viewModel.modoLocal.collectAsState()
 
+    // Estados de los campos del formulario.
     var asunto by rememberSaveable { mutableStateOf("") }
     var cuerpo by rememberSaveable { mutableStateOf("") }
-    var tipo by rememberSaveable { mutableStateOf<TipoComunicacion?>(null) }
-    var alcance by rememberSaveable { mutableStateOf<AlcanceEnvio?>(null) }
-    var destino by rememberSaveable { mutableStateOf<String?>(null) }
-    var requiereFirma by rememberSaveable { mutableStateOf(false) }
-    var intentoEnvio by rememberSaveable { mutableStateOf(false) }
-    var confirmando by rememberSaveable { mutableStateOf(false) }
-    var permisoSolicitado by rememberSaveable { mutableStateOf(false) }
-    var adjunto by remember { mutableStateOf<AdjuntoPdf?>(null) }
-    var errorAdjunto by remember { mutableStateOf<String?>(null) }
+
+    var tipo by rememberSaveable {
+        mutableStateOf<TipoComunicacion?>(null)
+    }
+
+    var alcance by rememberSaveable {
+        mutableStateOf<AlcanceEnvio?>(null)
+    }
+
+    var destino by rememberSaveable {
+        mutableStateOf<String?>(null)
+    }
+
+    var requiereFirma by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    var intentoEnvio by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    var confirmando by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    var permisoSolicitado by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    // Controla el documento adjunto y sus errores.
+    var adjunto by remember {
+        mutableStateOf<AdjuntoPdf?>(null)
+    }
+
+    var errorAdjunto by remember {
+        mutableStateOf<String?>(null)
+    }
 
     val scroll = rememberScrollState()
     val alcanceScope = rememberCoroutineScope()
 
-    // Un envío anterior no debe reaparecer al abrir la pantalla.
-    LaunchedEffect(Unit) { viewModel.reiniciarEnvio() }
-
-    // La vibración acompaña la alerta de resultado.
-    LaunchedEffect(estadoEnvio) {
-        val actual = estadoEnvio
-        if (actual is EstadoEnvioUi.Listo) Vibracion.confirmar(context, exito = actual.resumen.fallidos == 0)
+    // Evita mostrar el resultado de un envío anterior.
+    LaunchedEffect(Unit) {
+        viewModel.reiniciarEnvio()
     }
 
-    val selectorPdf = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+    // Recurso nativo: vibración al finalizar el envío.
+    LaunchedEffect(estadoEnvio) {
+
+        val actual = estadoEnvio
+
+        if (actual is EstadoEnvioUi.Listo) {
+            Vibracion.confirmar(
+                context,
+                exito = actual.resumen.fallidos == 0
+            )
+        }
+    }
+
+    // Abre el selector nativo de documentos PDF.
+    val selectorPdf = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+
         if (uri != null) {
-            val resultado = ArchivosPdf.inspeccionar(context, uri)
+
+            val resultado =
+                ArchivosPdf.inspeccionar(context, uri)
+
             adjunto = resultado.adjunto
             errorAdjunto = resultado.error
         }
     }
 
-    // En Android 13+ se pide el permiso de notificaciones una vez, justo antes de confirmar.
-    val solicitudPermiso = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+    // Solicita el permiso de notificaciones de Android.
+    val solicitudPermiso = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {
         confirmando = true
     }
 
+    // Valida el formulario después del primer intento de envío.
     val errores: ErroresComunicado = if (intentoEnvio) {
-        viewModel.validarComunicado(asunto, cuerpo, tipo, alcance, destino)
+
+        viewModel.validarComunicado(
+            asunto,
+            cuerpo,
+            tipo,
+            alcance,
+            destino
+        )
+
     } else {
+
         ErroresComunicado()
     }
-    val tiposDisponibles = viewModel.tiposPermitidos(usuario)
-    val alcancesDisponibles = viewModel.alcancesPermitidos(usuario)
-    val destinosDisponibles = remember(alcance, usuario, datos) { viewModel.destinosPara(alcance, usuario) }
-    val cantidadDestinatarios = viewModel.contarDestinatarios(alcance, destino)
-    val enviando = estadoEnvio is EstadoEnvioUi.Enviando
+
+    // Obtiene las opciones autorizadas según el perfil.
+    val tiposDisponibles =
+        viewModel.tiposPermitidos(usuario)
+
+    val alcancesDisponibles =
+        viewModel.alcancesPermitidos(usuario)
+
+    val destinosDisponibles =
+        remember(alcance, usuario, datos) {
+            viewModel.destinosPara(alcance, usuario)
+        }
+
+    val cantidadDestinatarios =
+        viewModel.contarDestinatarios(alcance, destino)
+
+    // Impide modificar el formulario durante el envío.
+    val enviando =
+        estadoEnvio is EstadoEnvioUi.Enviando
 
     Scaffold(
-        topBar = { BarraSuperior("Redactar comunicado", navController) }
+        topBar = {
+            BarraSuperior(
+                "Redactar comunicado",
+                navController
+            )
+        }
     ) { padding ->
+
         Column(
             modifier = Modifier
                 .padding(padding)
@@ -162,218 +244,520 @@ fun RedactarComunicadoScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+
+            // RF-06: informa las restricciones del Profesor Jefe.
             if (usuario?.perfil == Perfil.PROFESOR_JEFE) {
+
                 AvisoCard(
                     texto = "Como Profesor/a Jefe solo puedes enviar comunicados a tu curso" +
-                        (usuario?.cursoAsignado?.let { " ($it)" } ?: "") + ".",
+                            (usuario?.cursoAsignado?.let {
+                                " ($it)"
+                            } ?: "") + ".",
+
                     icono = Icons.Filled.Info
                 )
             }
 
+            // =============================================
+            // ASUNTO
+            // =============================================
+
             OutlinedTextField(
                 value = asunto,
-                onValueChange = { asunto = it },
-                label = { Text("Asunto") },
-                leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) },
+
+                onValueChange = {
+                    asunto = it
+                },
+
+                label = {
+                    Text("Asunto")
+                },
+
+                leadingIcon = {
+                    Icon(
+                        Icons.Filled.Edit,
+                        contentDescription = null
+                    )
+                },
+
                 trailingIcon = if (errores.asunto != null) {
-                    { Icon(Icons.Filled.ErrorOutline, contentDescription = "Campo con error", tint = MaterialTheme.colorScheme.error) }
+                    {
+                        Icon(
+                            Icons.Filled.ErrorOutline,
+                            contentDescription = "Campo con error",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
                 } else {
                     null
                 },
+
+                // Muestra el error o contador de caracteres.
                 isError = errores.asunto != null,
-                supportingText = apoyo(errores.asunto ?: "${asunto.trim().length}/${ReglasComunicado.MAX_ASUNTO}"),
+
+                supportingText = apoyo(
+                    errores.asunto ?:
+                    "${asunto.trim().length}/${ReglasComunicado.MAX_ASUNTO}"
+                ),
+
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences
+                ),
+
                 enabled = !enviando,
                 modifier = Modifier.fillMaxWidth()
             )
 
+            // =============================================
+            // CUERPO DEL MENSAJE
+            // =============================================
+
             OutlinedTextField(
                 value = cuerpo,
-                onValueChange = { cuerpo = it },
-                label = { Text("Cuerpo del mensaje") },
-                leadingIcon = { Icon(Icons.Filled.Description, contentDescription = null) },
+
+                onValueChange = {
+                    cuerpo = it
+                },
+
+                label = {
+                    Text("Cuerpo del mensaje")
+                },
+
+                leadingIcon = {
+                    Icon(
+                        Icons.Filled.Description,
+                        contentDescription = null
+                    )
+                },
+
                 trailingIcon = if (errores.cuerpo != null) {
-                    { Icon(Icons.Filled.ErrorOutline, contentDescription = "Campo con error", tint = MaterialTheme.colorScheme.error) }
+                    {
+                        Icon(
+                            Icons.Filled.ErrorOutline,
+                            contentDescription = "Campo con error",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
                 } else {
                     null
                 },
+
                 isError = errores.cuerpo != null,
-                supportingText = apoyo(errores.cuerpo ?: "${cuerpo.trim().length}/${ReglasComunicado.MAX_CUERPO}"),
+
+                supportingText = apoyo(
+                    errores.cuerpo ?:
+                    "${cuerpo.trim().length}/${ReglasComunicado.MAX_CUERPO}"
+                ),
+
                 minLines = 4,
                 maxLines = 8,
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences
+                ),
+
                 enabled = !enviando,
                 modifier = Modifier.fillMaxWidth()
             )
+
+            // =============================================
+            // TIPO DE COMUNICACIÓN
+            // =============================================
 
             SelectorDesplegable(
                 etiqueta = "Tipo de comunicación",
                 opciones = tiposDisponibles,
                 seleccion = tipo,
                 textoDe = { it.etiqueta },
-                onSeleccion = { tipo = it },
+
+                onSeleccion = {
+                    tipo = it
+                },
+
                 error = errores.tipo,
-                leadingIcon = { Icon(Icons.Filled.Category, contentDescription = null) },
+
+                leadingIcon = {
+                    Icon(
+                        Icons.Filled.Category,
+                        contentDescription = null
+                    )
+                },
+
                 enabled = !enviando
             )
+
+            // =============================================
+            // ALCANCE Y DESTINO
+            // =============================================
 
             SelectorDesplegable(
                 etiqueta = "Alcance (destinatarios)",
                 opciones = alcancesDisponibles,
                 seleccion = alcance,
                 textoDe = { it.etiqueta },
+
                 onSeleccion = {
+
+                    // Limpia el destino cuando cambia el alcance.
                     alcance = it
                     destino = null
                 },
+
                 error = errores.alcance,
-                leadingIcon = { Icon(Icons.Filled.Groups, contentDescription = null) },
+
+                leadingIcon = {
+                    Icon(
+                        Icons.Filled.Groups,
+                        contentDescription = null
+                    )
+                },
+
                 enabled = !enviando
             )
 
+            // Anima la aparición del selector de destino.
             AnimatedVisibility(
-                visible = alcance != null && alcance != AlcanceEnvio.COLEGIO_COMPLETO,
-                enter = fadeIn(tween(250)) + expandVertically(tween(250)),
-                exit = fadeOut(tween(200)) + shrinkVertically(tween(200))
+                visible = alcance != null &&
+                        alcance != AlcanceEnvio.COLEGIO_COMPLETO,
+
+                enter = fadeIn(tween(250)) +
+                        expandVertically(tween(250)),
+
+                exit = fadeOut(tween(200)) +
+                        shrinkVertically(tween(200))
             ) {
+
                 SelectorDesplegable(
                     etiqueta = "Destino",
                     opciones = destinosDisponibles,
                     seleccion = destino,
                     textoDe = { it },
-                    onSeleccion = { destino = it },
+
+                    onSeleccion = {
+                        destino = it
+                    },
+
                     error = errores.destino,
-                    leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) },
+
+                    leadingIcon = {
+                        Icon(
+                            Icons.Filled.Person,
+                            contentDescription = null
+                        )
+                    },
+
                     enabled = !enviando
                 )
             }
 
+            // Muestra la cantidad de destinatarios disponibles.
             AnimatedVisibility(
-                visible = alcance != null && cantidadDestinatarios > 0,
+                visible = alcance != null &&
+                        cantidadDestinatarios > 0,
+
                 enter = fadeIn(tween(250)),
                 exit = fadeOut(tween(200))
             ) {
+
                 Text(
                     text = "Destinatarios: $cantidadDestinatarios apoderado(s). " +
-                        if (requiereFirma) "Se informará por correo a todos."
-                        else "Cada uno recibirá el comunicado por su canal preferente.",
+                            if (requiereFirma) {
+                                "Se informará por correo a todos."
+                            } else {
+                                "Se utilizará el canal preferente."
+                            },
+
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            // Adjunto PDF opcional (recurso nativo: selector de archivos del sistema).
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedButton(
-                    enabled = !enviando,
-                    onClick = { selectorPdf.launch(arrayOf(ReglasComunicado.TIPO_MIME_PDF)) }
-                ) {
-                    Icon(Icons.Filled.AttachFile, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(if (adjunto == null) "Adjuntar PDF (opcional)" else "Cambiar PDF")
+            // =============================================
+            // DOCUMENTO PDF
+            // =============================================
+
+            OutlinedButton(
+                enabled = !enviando,
+
+                onClick = {
+                    selectorPdf.launch(
+                        arrayOf("application/pdf")
+                    )
                 }
+            ) {
+
+                Icon(
+                    Icons.Filled.AttachFile,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+
+                Spacer(
+                    modifier = Modifier.width(8.dp)
+                )
+
+                Text("Adjuntar PDF (opcional)")
             }
+
+            // Muestra el PDF seleccionado con una animación.
             AnimatedVisibility(
                 visible = adjunto != null,
-                enter = fadeIn(tween(250)) + expandVertically(tween(250)),
-                exit = fadeOut(tween(200)) + shrinkVertically(tween(200))
+
+                enter = fadeIn(tween(250)) +
+                        expandVertically(tween(250)),
+
+                exit = fadeOut(tween(200)) +
+                        shrinkVertically(tween(200))
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.PictureAsPdf, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(8.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+
+                    Icon(
+                        Icons.Filled.PictureAsPdf,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+
+                    Spacer(
+                        modifier = Modifier.width(8.dp)
+                    )
+
                     Text(
-                        text = adjunto?.let { "${it.nombre} (${tamanoLegible(it.tamanoBytes)})" }.orEmpty(),
+                        text = adjunto?.let {
+                            "${it.nombre} (${tamanoLegible(it.tamanoBytes)})"
+                        }.orEmpty(),
+
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f)
                     )
-                    IconButton(enabled = !enviando, onClick = { adjunto = null }) {
-                        Icon(Icons.Filled.Close, contentDescription = "Quitar PDF")
+
+                    // Permite retirar el PDF antes del envío.
+                    IconButton(
+                        enabled = !enviando,
+
+                        onClick = {
+                            adjunto = null
+                            errorAdjunto = null
+                        }
+                    ) {
+
+                        Icon(
+                            Icons.Filled.Close,
+                            contentDescription = "Quitar PDF"
+                        )
                     }
                 }
             }
-            AnimatedVisibility(visible = errorAdjunto != null) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Filled.ErrorOutline,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = errorAdjunto.orEmpty(),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
+
+            // Informa los errores del documento seleccionado.
+            AnimatedVisibility(
+                visible = errorAdjunto != null
+            ) {
+
+                Column {
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+
+                        Icon(
+                            Icons.Filled.ErrorOutline,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(18.dp)
+                        )
+
+                        Spacer(
+                            modifier = Modifier.width(6.dp)
+                        )
+
+                        Text(
+                            text = errorAdjunto.orEmpty(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+
+                    // Permite continuar sin un adjunto incorrecto.
+                    TextButton(
+                        enabled = !enviando,
+
+                        onClick = {
+                            adjunto = null
+                            errorAdjunto = null
+                        }
+                    ) {
+                        Text("Continuar sin PDF")
+                    }
                 }
             }
 
-            // RF-12: autorización con firma legal, rol solo informativo.
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // =============================================
+            // AUTORIZACIÓN CON FIRMA FÍSICA
+            // =============================================
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
                 Checkbox(
                     checked = requiereFirma,
-                    onCheckedChange = { requiereFirma = it },
+
+                    onCheckedChange = {
+                        requiereFirma = it
+                    },
+
                     enabled = !enviando
                 )
-                Text("Es una autorización que requiere firma física del apoderado")
+
+                Text(
+                    "Es una autorización que requiere firma física del apoderado"
+                )
             }
+
+            // Anima el aviso cuando se solicita firma física.
             AnimatedVisibility(
                 visible = requiereFirma,
-                enter = fadeIn(tween(300)) + expandVertically(tween(300)),
-                exit = fadeOut(tween(250)) + shrinkVertically(tween(250))
+
+                enter = fadeIn(tween(300)) +
+                        expandVertically(tween(300)),
+
+                exit = fadeOut(tween(250)) +
+                        shrinkVertically(tween(250))
             ) {
+
                 AvisoCard(
                     texto = "Rol solo informativo: la app notifica por correo y avisa que la autorización " +
-                        "debe entregarse físicamente con firma manuscrita. No se capturan firmas en la app.",
+                            "debe entregarse físicamente con firma manuscrita. No se capturan firmas en la app.",
+
                     icono = Icons.Filled.Warning
                 )
             }
 
+            // =============================================
+            // BOTÓN ENVIAR
+            // =============================================
+
             Button(
                 enabled = !enviando,
+
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp),
+
                 onClick = {
+
                     intentoEnvio = true
+
+                    // Valida los campos antes de confirmar.
                     val hayErrores =
-                        viewModel.validarComunicado(asunto, cuerpo, tipo, alcance, destino).hayErrores
+                        viewModel.validarComunicado(
+                            asunto,
+                            cuerpo,
+                            tipo,
+                            alcance,
+                            destino
+                        ).hayErrores
+
                     if (hayErrores || errorAdjunto != null) {
-                        alcanceScope.launch { scroll.animateScrollTo(0) }
-                    } else if (viewModel.necesitaPermisoNotificaciones() && !permisoSolicitado) {
+
+                        // Regresa al inicio del formulario.
+                        alcanceScope.launch {
+                            scroll.animateScrollTo(0)
+                        }
+
+                    } else if (
+                        viewModel.necesitaPermisoNotificaciones() &&
+                        !permisoSolicitado
+                    ) {
+
                         permisoSolicitado = true
-                        solicitudPermiso.launch(Notificador.PERMISO)
+
+                        solicitudPermiso.launch(
+                            Notificador.PERMISO
+                        )
+
                     } else {
+
                         confirmando = true
                     }
                 }
             ) {
-                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(8.dp))
+
+                Icon(
+                    Icons.AutoMirrored.Filled.Send,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+
+                Spacer(
+                    modifier = Modifier.width(8.dp)
+                )
+
                 Text("Enviar")
             }
         }
     }
 
-    // Confirmación previa al envío.
+    // =====================================================
+    // CONFIRMACIÓN DEL ENVÍO
+    // =====================================================
+
     val tipoElegido = tipo
     val alcanceElegido = alcance
-    if (confirmando && tipoElegido != null && alcanceElegido != null) {
+
+    if (
+        confirmando &&
+        tipoElegido != null &&
+        alcanceElegido != null
+    ) {
+
         AlertDialog(
-            onDismissRequest = { confirmando = false },
-            icon = { Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null) },
-            title = { Text("¿Enviar comunicado?") },
-            text = {
-                Text(
-                    "Se enviará a $cantidadDestinatarios apoderado(s) (despacho simulado en el servidor). Una vez enviado, " +
-                        "el comunicado queda registrado en el historial y no se puede editar."
+            onDismissRequest = {
+                confirmando = false
+            },
+
+            icon = {
+                Icon(
+                    Icons.AutoMirrored.Filled.Send,
+                    contentDescription = null
                 )
             },
+
+            title = {
+                Text("¿Enviar comunicado?")
+            },
+
+            text = {
+
+                // EV3: diferencia el modo local del remoto.
+                val modo = if (modoLocal) {
+
+                    "despacho simulado local, sin envío real"
+
+                } else {
+
+                    "despacho mediante servidor"
+                }
+
+                Text(
+                    "Se enviará a $cantidadDestinatarios apoderado(s) ($modo). " +
+                            "Una vez enviado, el comunicado queda registrado en el historial y no se puede editar."
+                )
+            },
+
             confirmButton = {
+
                 TextButton(
                     onClick = {
+
                         confirmando = false
+
+                        // Entrega el formulario al ViewModel.
                         viewModel.enviarComunicado(
                             SolicitudComunicado(
                                 asunto = asunto,
@@ -386,94 +770,309 @@ fun RedactarComunicadoScreen(
                             )
                         )
                     }
-                ) { Text("Enviar") }
+                ) {
+                    Text("Enviar")
+                }
             },
-            dismissButton = { TextButton(onClick = { confirmando = false }) { Text("Cancelar") } }
+
+            dismissButton = {
+
+                TextButton(
+                    onClick = {
+                        confirmando = false
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
         )
     }
 
-    // Progreso, resultado y errores del despacho simulado.
+    // =====================================================
+    // PROGRESO Y RESULTADO DEL ENVÍO
+    // =====================================================
+
     when (val estado = estadoEnvio) {
+
         is EstadoEnvioUi.Enviando -> {
+
+            // Anima el avance del procesamiento.
             val avance by animateFloatAsState(
-                targetValue = if (estado.total == 0) 0f else estado.procesados.toFloat() / estado.total,
+                targetValue = if (estado.total == 0) {
+
+                    0f
+
+                } else {
+
+                    (estado.procesados.toFloat() / estado.total)
+                        .coerceIn(0f, 1f)
+                },
+
                 animationSpec = tween(250),
                 label = "avanceEnvio"
             )
+
+            // EV3: diferencia el despacho del registro final.
+            val registrando =
+                estado.total > 0 &&
+                        estado.procesados >= estado.total
+
             AlertDialog(
                 onDismissRequest = {},
-                title = { Text("Enviando comunicado…") },
+
+                title = {
+
+                    Text(
+                        if (registrando) {
+
+                            "Guardando comunicado…"
+
+                        } else {
+
+                            "Enviando comunicado…"
+                        }
+                    )
+                },
+
                 text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        LinearProgressIndicator(progress = { avance }, modifier = Modifier.fillMaxWidth())
-                        Text("${estado.procesados} de ${estado.total} destinatario(s) procesados")
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+
+                        if (registrando) {
+
+                            // Progreso indeterminado durante el guardado.
+                            LinearProgressIndicator(
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            Text(
+                                if (modoLocal) {
+
+                                    "Guardando en la base local…"
+
+                                } else {
+
+                                    "Confirmando el registro…"
+                                }
+                            )
+
+                        } else {
+
+                            // Progreso según destinatarios procesados.
+                            LinearProgressIndicator(
+                                progress = { avance },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            Text(
+                                "${estado.procesados} de ${estado.total} destinatario(s) procesados"
+                            )
+                        }
                     }
                 },
+
                 confirmButton = {}
             )
         }
 
+        // =============================================
+        // ENVÍO FINALIZADO
+        // =============================================
+
         is EstadoEnvioUi.Listo -> {
+
             val resumen = estado.resumen
+
             AlertDialog(
                 onDismissRequest = {},
+
                 icon = {
+
                     Icon(
-                        imageVector = if (resumen.fallidos == 0) Icons.Filled.CheckCircle else Icons.Filled.Warning,
+                        imageVector = if (resumen.fallidos == 0) {
+
+                            Icons.Filled.CheckCircle
+
+                        } else {
+
+                            Icons.Filled.Warning
+                        },
+
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
                     )
                 },
-                title = { Text("Comunicado enviado") },
+
+                title = {
+                    Text("Comunicado enviado")
+                },
+
                 text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("${resumen.despachados} despachado(s)")
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+
+                        // Muestra los despachos correctos.
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+
+                            Icon(
+                                Icons.Filled.CheckCircle,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+
+                            Spacer(
+                                modifier = Modifier.width(8.dp)
+                            )
+
+                            Text(
+                                "${resumen.despachados} despachado(s)"
+                            )
                         }
+
+                        // Muestra los destinatarios fallidos.
                         if (resumen.fallidos > 0) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Filled.Error, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("${resumen.fallidos} fallido(s): revisa el detalle en el historial")
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+
+                                Icon(
+                                    Icons.Filled.Error,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+
+                                Spacer(
+                                    modifier = Modifier.width(8.dp)
+                                )
+
+                                Text(
+                                    "${resumen.fallidos} fallido(s): revisa el detalle en el historial"
+                                )
                             }
                         }
+
+                        // Aclara que no se realizan envíos reales en modo local.
+                        if (modoLocal) {
+
+                            Text(
+                                "Despacho simulado. El comunicado quedó registrado localmente.",
+
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+
                         if (resumen.requiereFirmaFisica) {
+
                             Text(
                                 "Recuerda: la autorización debe entregarse físicamente con firma manuscrita.",
+
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
                     }
                 },
+
                 confirmButton = {
+
                     TextButton(
                         onClick = {
+
                             viewModel.reiniciarEnvio()
+
                             navController.popBackStack()
                         }
-                    ) { Text("Aceptar") }
+                    ) {
+                        Text("Aceptar")
+                    }
                 }
             )
         }
 
+        // =============================================
+        // CONTROL DE ERRORES
+        // =============================================
+
         is EstadoEnvioUi.Error -> {
+
             AlertDialog(
-                onDismissRequest = { viewModel.reiniciarEnvio() },
-                icon = { Icon(Icons.Filled.ErrorOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
-                title = { Text(if (estado.puedeReintentar) "No se pudo registrar" else "No se pudo enviar") },
-                text = { Text(estado.mensaje) },
+                onDismissRequest = {
+                    viewModel.reiniciarEnvio()
+                },
+
+                icon = {
+
+                    Icon(
+                        Icons.Filled.ErrorOutline,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                },
+
+                title = {
+
+                    Text(
+                        if (estado.puedeReintentar) {
+
+                            "No se pudo registrar"
+
+                        } else {
+
+                            "No se pudo enviar"
+                        }
+                    )
+                },
+
+                text = {
+                    Text(estado.mensaje)
+                },
+
                 confirmButton = {
+
                     if (estado.puedeReintentar) {
-                        TextButton(onClick = { viewModel.reintentarRegistro() }) { Text("Reintentar") }
+
+                        // Reintenta guardar sin duplicar los despachos.
+                        TextButton(
+                            onClick = {
+                                viewModel.reintentarRegistro()
+                            }
+                        ) {
+                            Text("Reintentar")
+                        }
+
                     } else {
-                        TextButton(onClick = { viewModel.reiniciarEnvio() }) { Text("Aceptar") }
+
+                        TextButton(
+                            onClick = {
+                                viewModel.reiniciarEnvio()
+                            }
+                        ) {
+                            Text("Aceptar")
+                        }
                     }
                 },
+
                 dismissButton = if (estado.puedeReintentar) {
-                    { TextButton(onClick = { viewModel.reiniciarEnvio() }) { Text("Descartar") } }
+
+                    {
+
+                        TextButton(
+                            onClick = {
+                                viewModel.reiniciarEnvio()
+                            }
+                        ) {
+                            Text("Descartar")
+                        }
+                    }
+
                 } else {
+
                     null
                 }
             )
@@ -483,8 +1082,15 @@ fun RedactarComunicadoScreen(
     }
 }
 
+// Convierte el tamaño del PDF a un formato fácil de leer.
 private fun tamanoLegible(bytes: Long): String = when {
-    bytes >= 1024 * 1024 -> "%.1f MB".format(bytes / (1024.0 * 1024.0))
-    bytes >= 1024 -> "${bytes / 1024} KB"
-    else -> "$bytes B"
+
+    bytes >= 1024 * 1024 ->
+        "%.1f MB".format(bytes / (1024.0 * 1024.0))
+
+    bytes >= 1024 ->
+        "${bytes / 1024} KB"
+
+    else ->
+        "$bytes B"
 }
