@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Consumo de la API REST (modo API) y prueba de conexión del diálogo "Servidor". -->
+    <!-- Permite la conexión con la API REST. -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Distinguir "el dispositivo no tiene red" de "el servidor no responde" (nativo/EstadoRed). -->
+
+    <!-- Comprueba el estado de la conexión a internet. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- Recurso nativo: aviso local del resultado del envío (Android 13+, se pide al enviar). -->
+
+    <!-- Permite mostrar notificaciones en Android 13+. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Recurso nativo: vibración corta al confirmar el resultado de un envío. -->
+
+    <!-- Permite vibrar al confirmar un envío. -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
@@ -18,18 +21,34 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@style/Theme.MpazNotifica">
 
+        <!-- Actividad principal de la aplicación. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:theme="@style/Theme.MpazNotifica">
 
+            <!-- Define la pantalla de inicio de la aplicación. -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
         </activity>
+
+        <!-- EV3: permite compartir y abrir los PDF de forma segura. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+
+            <!-- Define las carpetas autorizadas para compartir archivos. -->
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+
+        </provider>
 
     </application>
 

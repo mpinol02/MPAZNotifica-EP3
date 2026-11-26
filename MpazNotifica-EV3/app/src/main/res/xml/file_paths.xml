@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- EV3: define la carpeta autorizada para compartir PDF. -->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Permite acceder únicamente a los documentos adjuntos. -->
+    <files-path
+        name="adjuntos_pdf"
+        path="adjuntos/" />
+
+</paths>
