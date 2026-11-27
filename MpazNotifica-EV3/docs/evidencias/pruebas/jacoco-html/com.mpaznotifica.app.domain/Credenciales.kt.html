@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Credenciales.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.domain</a> &gt; <span class="el_source">Credenciales.kt</span></div><h1>Credenciales.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.domain
+
+import com.mpaznotifica.app.model.ErroresLogin
+import java.security.MessageDigest
+
+/**
+ * Reglas de autenticación (RF-01), sin dependencias de Android para poder probarlas en JVM.
+ *
+ * La clave no se guarda en texto plano: se compara el SHA-256 de (sal + clave). La sal es fija
+ * y de DEMOSTRACIÓN; es suficiente para este MVP académico, pero un sistema real debe usar un
+ * algoritmo de derivación lento (bcrypt/Argon2) con sal aleatoria por usuario y un backend.
+ */
+object Credenciales {
+
+    const val LARGO_MIN_CLAVE = 6
+    private const val SAL_DEMO = &quot;mpaz-demo-2026|&quot;
+<span class="fc" id="L17">    private val regexCorreo = Regex(&quot;&quot;&quot;^[\w.+-]+@[\w-]+(\.[\w-]+)+$&quot;&quot;&quot;)</span>
+
+    fun hash(clave: String): String =
+<span class="fc" id="L20">        MessageDigest.getInstance(&quot;SHA-256&quot;)</span>
+<span class="fc" id="L21">            .digest((SAL_DEMO + clave).toByteArray(Charsets.UTF_8))</span>
+<span class="fc" id="L22">            .joinToString(&quot;&quot;) { byte -&gt; &quot;%02x&quot;.format(byte.toInt() and 0xFF) }</span>
+
+<span class="fc" id="L24">    fun coincide(clave: String, claveHash: String): Boolean = hash(clave) == claveHash</span>
+
+    /** Valida el formato de los campos antes de consultar la base (un mensaje por campo). */
+<span class="fc" id="L27">    fun validar(usuario: String, clave: String): ErroresLogin = ErroresLogin(</span>
+<span class="fc" id="L28">        usuario = when {</span>
+<span class="fc bfc" id="L29" title="All 2 branches covered.">            usuario.isBlank() -&gt; &quot;Ingresa tu correo institucional&quot;</span>
+<span class="fc bfc" id="L30" title="All 2 branches covered.">            !regexCorreo.matches(usuario.trim()) -&gt; &quot;El correo no tiene un formato válido&quot;</span>
+<span class="fc" id="L31">            else -&gt; null</span>
+        },
+<span class="fc" id="L33">        clave = when {</span>
+<span class="fc bfc" id="L34" title="All 2 branches covered.">            clave.isBlank() -&gt; &quot;Ingresa tu clave&quot;</span>
+<span class="fc bfc" id="L35" title="All 2 branches covered.">            clave.length &lt; LARGO_MIN_CLAVE -&gt; &quot;La clave tiene al menos $LARGO_MIN_CLAVE caracteres&quot;</span>
+<span class="fc" id="L36">            else -&gt; null</span>
+        }
+<span class="fc" id="L38">    )</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

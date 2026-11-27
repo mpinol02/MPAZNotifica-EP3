@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Entidades.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.data.local</a> &gt; <span class="el_source">Entidades.kt</span></div><h1>Entidades.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.data.local
+
+import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
+import androidx.room.PrimaryKey
+
+/*
+ * Modelo relacional (Room / SQLite). Los enums se guardan como texto (enum.name).
+ *
+ * Supuestos pendientes de confirmar con el CITT:
+ *  - Un apoderado puede tener más de un pupilo: estudiantes.apoderadoId (relación 1..N).
+ *  - Los talleres son una entidad propia con estudiantes inscritos: tabla intermedia N..N.
+ */
+
+@Entity(
+    tableName = &quot;usuarios&quot;,
+    indices = [Index(value = [&quot;usuario&quot;], unique = true)]
+)
+<span class="fc" id="L20">data class UsuarioEntity(</span>
+<span class="fc" id="L21">    @PrimaryKey val id: String,</span>
+<span class="fc" id="L22">    val nombre: String,</span>
+<span class="fc" id="L23">    val usuario: String,</span>
+<span class="fc" id="L24">    val claveHash: String,</span>
+<span class="fc" id="L25">    val perfil: String,</span>
+<span class="fc" id="L26">    val cursoAsignado: String?</span>
+)
+
+@Entity(tableName = &quot;apoderados&quot;)
+<span class="fc" id="L30">data class ApoderadoEntity(</span>
+<span class="fc" id="L31">    @PrimaryKey val id: String,</span>
+<span class="fc" id="L32">    val nombreCompleto: String,</span>
+<span class="fc" id="L33">    val correo: String,</span>
+<span class="fc" id="L34">    val telefono: String,</span>
+<span class="fc" id="L35">    val canalPreferente: String</span>
+)
+
+@Entity(
+    tableName = &quot;estudiantes&quot;,
+    foreignKeys = [
+        ForeignKey(
+            entity = ApoderadoEntity::class,
+            parentColumns = [&quot;id&quot;],
+            childColumns = [&quot;apoderadoId&quot;],
+            onDelete = ForeignKey.RESTRICT
+        )
+    ],
+    indices = [Index(&quot;apoderadoId&quot;)]
+)
+<span class="fc" id="L50">data class EstudianteEntity(</span>
+<span class="fc" id="L51">    @PrimaryKey val id: String,</span>
+<span class="fc" id="L52">    val nombreReferencial: String,</span>
+<span class="fc" id="L53">    val curso: String,</span>
+<span class="fc" id="L54">    val apoderadoId: String</span>
+)
+
+@Entity(tableName = &quot;talleres&quot;)
+<span class="fc" id="L58">data class TallerEntity(</span>
+<span class="fc" id="L59">    @PrimaryKey val id: String,</span>
+<span class="fc" id="L60">    val nombre: String</span>
+)
+
+/** Tabla intermedia estudiante N..N taller. */
+@Entity(
+    tableName = &quot;estudiante_taller&quot;,
+    primaryKeys = [&quot;estudianteId&quot;, &quot;tallerId&quot;],
+    foreignKeys = [
+        ForeignKey(
+            entity = EstudianteEntity::class,
+            parentColumns = [&quot;id&quot;],
+            childColumns = [&quot;estudianteId&quot;],
+            onDelete = ForeignKey.RESTRICT
+        ),
+        ForeignKey(
+            entity = TallerEntity::class,
+            parentColumns = [&quot;id&quot;],
+            childColumns = [&quot;tallerId&quot;],
+            onDelete = ForeignKey.RESTRICT
+        )
+    ],
+    indices = [Index(&quot;tallerId&quot;)]
+)
+<span class="fc" id="L83">data class EstudianteTallerEntity(</span>
+<span class="fc" id="L84">    val estudianteId: String,</span>
+<span class="fc" id="L85">    val tallerId: String</span>
+)
+
+/**
+ * Comunicado emitido. INMUTABLE (RN-02): el DAO solo tiene inserción y consultas, y la base
+ * tiene disparadores que rechazan cualquier UPDATE o DELETE (ver AppDatabase).
+ */
+@Entity(
+    tableName = &quot;comunicaciones&quot;,
+    foreignKeys = [
+        ForeignKey(
+            entity = UsuarioEntity::class,
+            parentColumns = [&quot;id&quot;],
+            childColumns = [&quot;autorId&quot;],
+            onDelete = ForeignKey.RESTRICT
+        )
+    ],
+    indices = [Index(&quot;autorId&quot;), Index(&quot;fechaHora&quot;)]
+)
+<span class="fc" id="L104">data class ComunicacionEntity(</span>
+<span class="fc" id="L105">    @PrimaryKey val id: String,</span>
+<span class="fc" id="L106">    val asunto: String,</span>
+<span class="fc" id="L107">    val cuerpo: String,</span>
+<span class="fc" id="L108">    val tipo: String,</span>
+<span class="fc" id="L109">    val alcance: String,</span>
+<span class="fc" id="L110">    val destinoReferencia: String?,</span>
+<span class="fc" id="L111">    val adjuntoPdfNombre: String?,</span>
+<span class="fc" id="L112">    val requiereFirmaFisica: Boolean,</span>
+<span class="fc" id="L113">    val autorId: String,</span>
+<span class="fc" id="L114">    val autorNombre: String,</span>
+<span class="fc" id="L115">    val fechaHora: String</span>
+)
+
+/** Resultado del despacho a UN apoderado (RF-08) por un canal (RF-11). INMUTABLE (RN-02). */
+@Entity(
+    tableName = &quot;envios&quot;,
+    foreignKeys = [
+        ForeignKey(
+            entity = ComunicacionEntity::class,
+            parentColumns = [&quot;id&quot;],
+            childColumns = [&quot;comunicacionId&quot;],
+            onDelete = ForeignKey.RESTRICT
+        ),
+        ForeignKey(
+            entity = ApoderadoEntity::class,
+            parentColumns = [&quot;id&quot;],
+            childColumns = [&quot;apoderadoId&quot;],
+            onDelete = ForeignKey.RESTRICT
+        )
+    ],
+    indices = [Index(&quot;comunicacionId&quot;), Index(&quot;apoderadoId&quot;)]
+)
+<span class="fc" id="L137">data class EnvioEntity(</span>
+<span class="fc" id="L138">    @PrimaryKey val id: String,</span>
+<span class="fc" id="L139">    val comunicacionId: String,</span>
+<span class="fc" id="L140">    val apoderadoId: String,</span>
+<span class="fc" id="L141">    val canal: String,</span>
+<span class="fc" id="L142">    val estado: String,</span>
+<span class="fc" id="L143">    val detalle: String</span>
+)
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Comunicacion.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.model</a> &gt; <span class="el_source">Comunicacion.kt</span></div><h1>Comunicacion.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.model
+
+<span class="pc" id="L3">enum class TipoComunicacion(val etiqueta: String) {</span>
+<span class="fc" id="L4">    INSTITUCIONAL(&quot;Institucional&quot;),</span>
+<span class="fc" id="L5">    PEDAGOGICA(&quot;Pedagógica&quot;),</span>
+<span class="fc" id="L6">    DISCIPLINARIA(&quot;Disciplinaria&quot;),</span>
+<span class="fc" id="L7">    CITACION(&quot;Citación&quot;),</span>
+<span class="fc" id="L8">    EVENTO(&quot;Evento&quot;),</span>
+<span class="fc" id="L9">    TALLER(&quot;Taller&quot;),</span>
+<span class="fc" id="L10">    SALIDA_PEDAGOGICA(&quot;Salida pedagógica&quot;)</span>
+<span class="fc" id="L11">}</span>
+
+<span class="pc" id="L13">enum class AlcanceEnvio(val etiqueta: String) {</span>
+<span class="fc" id="L14">    APODERADO_INDIVIDUAL(&quot;Apoderado individual&quot;),</span>
+<span class="fc" id="L15">    CURSO(&quot;Curso&quot;),</span>
+<span class="fc" id="L16">    TALLER(&quot;Taller&quot;),</span>
+<span class="fc" id="L17">    COLEGIO_COMPLETO(&quot;Colegio completo&quot;)</span>
+<span class="fc" id="L18">}</span>
+
+<span class="pc" id="L20">enum class EstadoEnvio(val etiqueta: String) {</span>
+<span class="fc" id="L21">    DESPACHADO(&quot;Despachado&quot;),</span>
+<span class="fc" id="L22">    FALLIDO(&quot;Fallido&quot;)</span>
+<span class="nc" id="L23">}</span>
+
+/**
+ * Comunicado emitido (entidad &quot;Comunicación&quot; del caso).
+ *
+ * RN-02: una vez enviado queda registrado de forma INMUTABLE (no se edita ni se elimina).
+ * [requiereFirmaFisica] marca una autorización con firma legal (RF-12): la app solo informa por
+ * correo y alerta que corresponde entrega física para firma manuscrita; no captura firmas.
+ * [fechaHora] se guarda como texto &quot;AAAA-MM-DD HH:mm:ss&quot;, ordenable y comparable como texto.
+ */
+<span class="fc" id="L33">data class Comunicacion(</span>
+<span class="fc" id="L34">    val id: String,</span>
+<span class="fc" id="L35">    val asunto: String,</span>
+<span class="fc" id="L36">    val cuerpo: String,</span>
+<span class="fc" id="L37">    val tipo: TipoComunicacion,</span>
+<span class="fc" id="L38">    val alcance: AlcanceEnvio,</span>
+<span class="fc" id="L39">    val destinoReferencia: String? = null,</span>
+<span class="fc" id="L40">    val adjuntoPdfNombre: String? = null,</span>
+<span class="fc" id="L41">    val requiereFirmaFisica: Boolean = false,</span>
+<span class="fc" id="L42">    val autorId: String,</span>
+<span class="fc" id="L43">    val autorNombre: String,</span>
+<span class="fc" id="L44">    val fechaHora: String</span>
+<span class="fc" id="L45">)</span>
+
+/** Resultado del despacho simulado a UN destinatario (RF-08), con el canal empleado (RF-11). */
+<span class="fc" id="L48">data class EnvioDestinatario(</span>
+<span class="fc" id="L49">    val id: String,</span>
+<span class="fc" id="L50">    val comunicacionId: String,</span>
+<span class="fc" id="L51">    val apoderadoId: String,</span>
+<span class="fc" id="L52">    val canal: CanalDespacho,</span>
+<span class="fc" id="L53">    val estado: EstadoEnvio,</span>
+<span class="fc" id="L54">    val detalle: String = &quot;&quot;</span>
+<span class="fc" id="L55">)</span>
+
+/** Apoderado destinatario junto con el canal por el que se le despachará. */
+<span class="fc" id="L58">data class Destinatario(</span>
+<span class="fc" id="L59">    val apoderado: Apoderado,</span>
+<span class="fc" id="L60">    val canal: CanalDespacho</span>
+)
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MpazRepository.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.data.repository</a> &gt; <span class="el_source">MpazRepository.kt</span></div><h1>MpazRepository.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.data.repository
+
+import androidx.room.withTransaction
+import com.mpaznotifica.app.data.MockData
+import com.mpaznotifica.app.data.local.AppDatabase
+import com.mpaznotifica.app.data.local.EstudianteEntity
+import com.mpaznotifica.app.data.local.EstudianteTallerEntity
+import com.mpaznotifica.app.data.local.TallerEntity
+import com.mpaznotifica.app.data.local.aEntidad
+import com.mpaznotifica.app.data.local.aModelo
+import com.mpaznotifica.app.data.remote.ApiResult
+import com.mpaznotifica.app.data.remote.ComunicacionRegistrada
+import com.mpaznotifica.app.data.remote.FuenteRemota
+import com.mpaznotifica.app.data.remote.SesionRemota
+import com.mpaznotifica.app.model.Apoderado
+import com.mpaznotifica.app.model.CanalDespacho
+import com.mpaznotifica.app.model.Comunicacion
+import com.mpaznotifica.app.model.EnvioDestinatario
+import com.mpaznotifica.app.model.Estudiante
+import com.mpaznotifica.app.model.Taller
+import com.mpaznotifica.app.model.Usuario
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+/**
+ * Capa Repository: único punto de acceso a los datos para el ViewModel.
+ *
+ * Modo local:     UI -&gt; ViewModel -&gt; SelectorFuente -&gt; FuenteLocal -&gt; Room (base local).
+ * Modo servidor:  UI -&gt; ViewModel -&gt; SelectorFuente -&gt; FuenteServidor -&gt; Repository -&gt; API (fuente de
+ *                 verdad) -&gt; Room (caché) -&gt; UI.
+ *
+ * El modo se elige en tiempo de ejecución (BuildConfig.USAR_API solo da el valor inicial): esta clase
+ * es la ruta del modo servidor; el modo local lo atiende FuenteLocal con su propia base. Los métodos
+ * de modo local de esta clase (registrarEnvio, actualizarCanalPreferente) están completos y no se tocan. Los de modo API (sección &quot;Experiencia
+ * 3&quot;, al final) son los TODO(E3-6 a E3-8) de la Parte 3.
+ */
+<span class="fc" id="L40">class MpazRepository(</span>
+<span class="fc" id="L41">    private val db: AppDatabase,</span>
+<span class="fc" id="L42">    private val remoto: FuenteRemota? = null,</span>
+<span class="fc" id="L43">    cacheLocal: CacheLocal? = null</span>
+<span class="fc" id="L44">) {</span>
+
+<span class="fc" id="L46">    private val usuarioDao = db.usuarioDao()</span>
+<span class="fc" id="L47">    private val apoderadoDao = db.apoderadoDao()</span>
+<span class="fc" id="L48">    private val estudianteDao = db.estudianteDao()</span>
+<span class="fc" id="L49">    private val comunicacionDao = db.comunicacionDao()</span>
+
+<span class="fc" id="L51">    private val candadoSembrado = Mutex()</span>
+    private var sembrada = false
+
+<span class="fc" id="L54">    val usuarios: Flow&lt;List&lt;Usuario&gt;&gt; =</span>
+<span class="fc" id="L55">        usuarioDao.observarTodos().map { lista -&gt; lista.map { it.aModelo() } }</span>
+
+<span class="fc" id="L57">    val talleres: Flow&lt;List&lt;Taller&gt;&gt; =</span>
+<span class="fc" id="L58">        estudianteDao.observarTalleres().map { lista -&gt; lista.map { Taller(it.id, it.nombre) } }</span>
+
+<span class="fc" id="L60">    val estudiantes: Flow&lt;List&lt;Estudiante&gt;&gt; =</span>
+<span class="pc bpc" id="L61" title="1 of 2 branches missed.">        combine(estudianteDao.observarEstudiantes(), estudianteDao.observarInscripciones()) { filas, inscripciones -&gt;</span>
+<span class="fc" id="L62">            filas.map { fila -&gt;</span>
+<span class="fc" id="L63">                Estudiante(</span>
+<span class="fc" id="L64">                    id = fila.id,</span>
+<span class="fc" id="L65">                    nombreReferencial = fila.nombreReferencial,</span>
+<span class="fc" id="L66">                    curso = fila.curso,</span>
+<span class="fc" id="L67">                    talleresIds = inscripciones.filter { it.estudianteId == fila.id }.map { it.tallerId }</span>
+<span class="fc" id="L68">                )</span>
+<span class="fc" id="L69">            }</span>
+        }
+
+<span class="fc" id="L72">    val apoderados: Flow&lt;List&lt;Apoderado&gt;&gt; =</span>
+<span class="pc bpc" id="L73" title="1 of 2 branches missed.">        combine(apoderadoDao.observarTodos(), estudianteDao.observarEstudiantes()) { filas, estudiantes -&gt;</span>
+<span class="fc" id="L74">            filas.map { fila -&gt;</span>
+<span class="fc" id="L75">                fila.aModelo(estudiantes.filter { it.apoderadoId == fila.id }.map { it.id })</span>
+<span class="fc" id="L76">            }</span>
+        }
+
+<span class="fc" id="L79">    val comunicaciones: Flow&lt;List&lt;Comunicacion&gt;&gt; =</span>
+<span class="fc" id="L80">        comunicacionDao.observarTodas().map { lista -&gt; lista.map { it.aModelo() } }</span>
+
+<span class="fc" id="L82">    val envios: Flow&lt;List&lt;EnvioDestinatario&gt;&gt; =</span>
+<span class="fc" id="L83">        comunicacionDao.observarEnvios().map { lista -&gt; lista.map { it.aModelo() } }</span>
+
+    /** Carga la base sintética (MockData) la primera vez que se abre la app. */
+    suspend fun asegurarDatosIniciales() {
+<span class="fc" id="L87">        candadoSembrado.withLock {</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">            if (sembrada) return</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">            if (usuarioDao.contar() == 0) {</span>
+<span class="fc" id="L90">                db.withTransaction {</span>
+<span class="fc" id="L91">                    usuarioDao.insertarTodos(MockData.usuarios.map { it.aEntidad() })</span>
+<span class="fc" id="L92">                    apoderadoDao.insertarTodos(MockData.apoderados.map { it.aEntidad() })</span>
+<span class="fc" id="L93">                    estudianteDao.insertarTalleres(MockData.talleres.map { TallerEntity(it.id, it.nombre) })</span>
+<span class="fc" id="L94">                    estudianteDao.insertarEstudiantes(</span>
+<span class="fc" id="L95">                        MockData.estudiantes.map { estudiante -&gt;</span>
+<span class="fc" id="L96">                            val apoderado = MockData.apoderados.first { estudiante.id in it.pupilosIds }</span>
+<span class="fc" id="L97">                            EstudianteEntity(estudiante.id, estudiante.nombreReferencial, estudiante.curso, apoderado.id)</span>
+                        }
+                    )
+<span class="fc" id="L100">                    estudianteDao.insertarInscripciones(</span>
+<span class="fc" id="L101">                        MockData.estudiantes.flatMap { e -&gt; e.talleresIds.map { EstudianteTallerEntity(e.id, it) } }</span>
+                    )
+<span class="fc" id="L103">                    MockData.comunicados.forEach { comunicacionDao.insertar(it.aEntidad()) }</span>
+<span class="fc" id="L104">                    comunicacionDao.insertarEnvios(MockData.envios.map { it.aEntidad() })</span>
+<span class="fc" id="L105">                }</span>
+            }
+<span class="fc" id="L107">            sembrada = true</span>
+<span class="fc" id="L108">        }</span>
+<span class="fc" id="L109">    }</span>
+
+    suspend fun buscarUsuario(correo: String): Usuario? =
+<span class="fc bfc" id="L112" title="All 2 branches covered.">        usuarioDao.buscarPorUsuario(correo.trim())?.aModelo()</span>
+
+    /**
+     * Guarda el comunicado (inmutable, RN-02) junto con el resultado del despacho a cada
+     * destinatario, en una sola transacción: no quedan registros incompletos.
+     */
+    suspend fun registrarEnvio(comunicacion: Comunicacion, envios: List&lt;EnvioDestinatario&gt;) {
+<span class="fc bfc" id="L119" title="All 2 branches covered.">        require(envios.all { it.comunicacionId == comunicacion.id }) {</span>
+<span class="fc" id="L120">            &quot;Los envíos deben pertenecer al comunicado&quot;</span>
+        }
+<span class="pc" id="L122">        db.withTransaction {</span>
+<span class="fc" id="L123">            comunicacionDao.insertar(comunicacion.aEntidad())</span>
+<span class="fc" id="L124">            comunicacionDao.insertarEnvios(envios.map { it.aEntidad() })</span>
+<span class="fc" id="L125">        }</span>
+<span class="nc" id="L126">    }</span>
+
+    /** RF-13: actualiza el canal preferente. Devuelve false si el apoderado no existe. */
+    suspend fun actualizarCanalPreferente(apoderadoId: String, canal: CanalDespacho): Boolean =
+<span class="fc bfc" id="L130" title="All 2 branches covered.">        apoderadoDao.actualizarCanal(apoderadoId, canal.name) &gt; 0</span>
+
+    // =====================================================================================
+    // EXPERIENCIA 3 - Parte 3: integración con la API (solo se usa en modo servidor)
+    // =====================================================================================
+    //
+    // Reglas de la arquitectura (criterio común de E3-6 a E3-8):
+    //  - LECTURA: la API es la fuente de verdad. Se descarga con [remoto], se guarda en Room con
+    //    [cache] y las pantallas siguen observando los Flow de Room (los mismos de arriba).
+    //  - ESCRITURA: la API va primero. La caché local solo cambia cuando el servidor confirma.
+    //  - SIN RED: si el servidor no responde, la caché NO se toca y se devuelve el resultado de
+    //    error ([ApiResult.SinConexion]) para que el ViewModel avise y siga mostrando lo guardado.
+    //  - Si falla el guardado en Room, devolver ApiResult.Error(..., CausaError.LOCAL) con un
+    //    mensaje en español (el servidor ya tiene el dato: se verá en la próxima sincronización).
+
+    /**
+     * Caché local (Room) de lo que entrega el servidor. Ya implementada: ver RoomCache. El parámetro
+     * [cacheLocal] del constructor permite reemplazarla por un doble (MockK) en las pruebas JVM.
+     */
+<span class="pc bnc" id="L149" title="All 2 branches missed.">    private val cache: CacheLocal by lazy { cacheLocal ?: RoomCache(db) }</span>
+
+    /**
+     * TODO(E3-8a): RF-01. Inicia sesión en el servidor (POST /auth/login) a través de [remoto].
+     * Criterio: devuelve la sesión (usuario + token) o el error; con credenciales incorrectas el
+     * resultado es `ApiResult.Error` con causa NO_AUTORIZADO. No guardar la clave en ningún lado.
+     */
+    suspend fun iniciarSesionRemoto(usuario: String, clave: String): ApiResult&lt;SesionRemota&gt; =
+<span class="nc" id="L157">        TODO(&quot;E3-8a: delegar en remoto!!.login(usuario, clave)&quot;)</span>
+
+    /**
+     * TODO(E3-8b): cierra la sesión en el servidor (POST /auth/logout). Si falla (por ejemplo sin
+     * red) no importa: el token ya se descartó en la app. No debe lanzar excepciones.
+     */
+    suspend fun cerrarSesionRemota(token: String) {
+<span class="nc" id="L164">        TODO(&quot;E3-8b: remoto!!.logout(token) ignorando el resultado&quot;)</span>
+    }
+
+    /**
+     * TODO(E3-6): RF-04, RF-09. Descarga referencia y bitácora del servidor y deja Room igual.
+     * Criterios de aceptación:
+     *  - Usa `remoto.descargarReferencia()` y `remoto.descargarBitacora()`; si cualquiera falla,
+     *    devuelve ese error y NO modifica Room (todo o nada).
+     *  - Si ambas funcionan: `cache.guardarReferencia(...)` y luego `cache.reemplazarBitacora(...)`;
+     *    devuelve `ApiResult.Success(Unit)`.
+     *  - Si Room lanza una excepción (que no sea cancelación), devuelve
+     *    `ApiResult.Error(&quot;No se pudieron guardar los datos en el dispositivo.&quot;, CausaError.LOCAL)`.
+     */
+    suspend fun sincronizar(): ApiResult&lt;Unit&gt; =
+<span class="nc" id="L178">        TODO(&quot;E3-6: descargar -&gt; guardar en Room -&gt; Success(Unit); error/sin red -&gt; caché intacta&quot;)</span>
+
+    /**
+     * TODO(E3-7a): RF-03 a RF-08, RF-11, RF-12, RN-01, RN-02. Registra en el servidor el comunicado
+     * ya despachado (POST /comunicaciones) y, solo si el servidor lo confirma, guarda en Room el
+     * registro que ÉL devolvió (con su autor, fecha y hora definitivos) usando `cache.guardarRegistro`.
+     * Criterios: `require` que todos los envíos pertenezcan al comunicado; si el servidor rechaza
+     * (403, 400, 422, 409) o no responde, Room no cambia y se devuelve el error; si Room falla
+     * DESPUÉS de la confirmación del servidor, igual se devuelve el éxito (el dato ya está en el servidor).
+     */
+    suspend fun registrarEnvioRemoto(
+        comunicacion: Comunicacion,
+        destino: String?,
+        envios: List&lt;EnvioDestinatario&gt;
+    ): ApiResult&lt;ComunicacionRegistrada&gt; =
+<span class="nc" id="L193">        TODO(&quot;E3-7a: remoto.crearComunicacion(...) y luego cache.guardarRegistro(...) solo si hubo éxito&quot;)</span>
+
+    /**
+     * TODO(E3-7b): RF-13. Cambia el canal preferente en el servidor (PATCH /apoderados/{id}/canal)
+     * y, solo si lo acepta, en Room con `cache.guardarCanal`. Criterios: un 403 (perfil sin
+     * permiso) o un 422 (sin contacto válido para ese canal) dejan Room intacto y devuelven el error.
+     */
+    suspend fun actualizarCanalRemoto(apoderadoId: String, canal: CanalDespacho): ApiResult&lt;Apoderado&gt; =
+<span class="nc" id="L201">        TODO(&quot;E3-7b: remoto.actualizarCanal(...) y luego cache.guardarCanal(...) solo si hubo éxito&quot;)</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

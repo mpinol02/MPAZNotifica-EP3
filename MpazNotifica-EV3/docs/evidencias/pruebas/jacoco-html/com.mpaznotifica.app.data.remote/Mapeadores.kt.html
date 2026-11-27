@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Mapeadores.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.data.remote</a> &gt; <span class="el_source">Mapeadores.kt</span></div><h1>Mapeadores.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.data.remote
+
+import com.mpaznotifica.app.model.Apoderado
+import com.mpaznotifica.app.model.Comunicacion
+import com.mpaznotifica.app.model.EnvioDestinatario
+import com.mpaznotifica.app.model.Estudiante
+import com.mpaznotifica.app.model.ResumenEnvio
+import com.mpaznotifica.app.model.Taller
+import com.mpaznotifica.app.model.Usuario
+
+/*
+ * EXPERIENCIA 3 - Parte 2 (TODO E3-4): mapeadores DTO &lt;-&gt; modelo de dominio.
+ *
+ * Los DTO (Dtos.kt) son el contrato con el backend y vienen completos. Aquí se implementa la
+ * conversión hacia las clases del dominio (paquete model/) y, en sentido contrario, hacia el cuerpo
+ * de POST /comunicaciones.
+ *
+ * Criterio común: una respuesta incompleta o con un valor de enumeración desconocido NUNCA debe
+ * llegar a Room ni a la interfaz. Se rechaza con [RespuestaInvalidaException] (que
+ * [ManejadorErrores.desdeExcepcion] convierte en &quot;formato inesperado&quot;). Para eso se entregan dos
+ * ayudas ya implementadas: [requerido] y [enumDe].
+ */
+
+/** Devuelve [valor] si no está vacío; si lo está lanza [RespuestaInvalidaException] con el nombre del campo. */
+internal fun requerido(valor: String, campo: String): String {
+<span class="nc bnc" id="L26" title="All 2 branches missed.">    if (valor.isBlank()) throw RespuestaInvalidaException(&quot;Falta el campo '$campo'&quot;)</span>
+<span class="nc" id="L27">    return valor</span>
+}
+
+/** Convierte el texto del servidor a la enumeración [E]; un valor desconocido lanza [RespuestaInvalidaException]. */
+internal inline fun &lt;reified E : Enum&lt;E&gt;&gt; enumDe(valor: String, campo: String): E =
+    enumValues&lt;E&gt;().firstOrNull { it.name == valor }
+        ?: throw RespuestaInvalidaException(&quot;Valor desconocido '$valor' en '$campo'&quot;)
+
+// ---------------------------------------------------------------- usuario
+
+/**
+ * TODO(E3-4a): [UsuarioDto] -&gt; [Usuario]. Campos obligatorios: id, nombre, usuario y perfil
+ * (enumeración `Perfil`). `cursoAsignado` vacío o en blanco = null. El servidor NUNCA entrega la
+ * clave: `claveHash` queda en &quot;&quot; (la caché conserva el hash local, ver RoomCache).
+ */
+fun UsuarioDto.aDominio(): Usuario =
+<span class="nc" id="L43">    TODO(&quot;E3-4a: validar con requerido()/enumDe&lt;Perfil&gt;() y construir Usuario(claveHash = \&quot;\&quot;)&quot;)</span>
+
+// ---------------------------------------------------------------- referencia
+
+/** TODO(E3-4b): [TallerDto] -&gt; [Taller]. id y nombre obligatorios. */
+fun TallerDto.aDominio(): Taller =
+<span class="nc" id="L49">    TODO(&quot;E3-4b: Taller(requerido(id, \&quot;id\&quot;), requerido(nombre, \&quot;nombre\&quot;))&quot;)</span>
+
+/** TODO(E3-4c): [EstudianteDto] -&gt; [Estudiante]. id, nombreReferencial y curso obligatorios; talleresIds se copia tal cual. */
+fun EstudianteDto.aDominio(): Estudiante =
+<span class="nc" id="L53">    TODO(&quot;E3-4c: validar y construir Estudiante&quot;)</span>
+
+/**
+ * TODO(E3-4d): [ApoderadoDto] -&gt; [Apoderado]. id y nombreCompleto obligatorios; `canalPreferente`
+ * se convierte con `enumDe&lt;CanalDespacho&gt;`; correo y telefono pueden venir vacíos (contacto
+ * incompleto es un dato válido: el despacho a ese canal fallará, RF-08).
+ */
+fun ApoderadoDto.aDominio(): Apoderado =
+<span class="nc" id="L61">    TODO(&quot;E3-4d: validar y construir Apoderado&quot;)</span>
+
+// ---------------------------------------------------------------- bitácora
+
+/**
+ * TODO(E3-4e): [ComunicacionDto] -&gt; [Comunicacion]. Obligatorios: id, asunto, cuerpo, tipo
+ * (`TipoComunicacion`), alcance (`AlcanceEnvio`), autorId, autorNombre y fechaHora.
+ * `destinoReferencia` y `adjuntoPdfNombre` vacíos = null. El autor y la fecha/hora los fija el
+ * servidor (RF-11): se respetan tal como llegan.
+ */
+fun ComunicacionDto.aDominio(): Comunicacion =
+<span class="nc" id="L72">    TODO(&quot;E3-4e: validar y construir Comunicacion&quot;)</span>
+
+/** TODO(E3-4f): [EnvioDto] -&gt; [EnvioDestinatario]. Obligatorios: id, comunicacionId, apoderadoId, canal (`CanalDespacho`) y estado (`EstadoEnvio`). */
+fun EnvioDto.aDominio(): EnvioDestinatario =
+<span class="nc" id="L76">    TODO(&quot;E3-4f: validar y construir EnvioDestinatario&quot;)</span>
+
+/** TODO(E3-4g): [ResumenDto] -&gt; [ResumenEnvio] (despachados, fallidos, requiereFirmaFisica). */
+fun ResumenDto.aDominio(): ResumenEnvio =
+<span class="nc" id="L80">    TODO(&quot;E3-4g: ResumenEnvio(despachados, fallidos, requiereFirmaFisica)&quot;)</span>
+
+// ---------------------------------------------------------------- hacia el servidor
+
+/**
+ * TODO(E3-4h): [EnvioDestinatario] -&gt; [NuevoEnvioDto] para el cuerpo de POST /comunicaciones
+ * (apoderadoId, canal.name, estado.name, detalle).
+ */
+fun EnvioDestinatario.aDto(): NuevoEnvioDto =
+<span class="nc" id="L89">    TODO(&quot;E3-4h: NuevoEnvioDto(apoderadoId, canal.name, estado.name, detalle)&quot;)</span>
+
+/**
+ * TODO(E3-4i): [Comunicacion] -&gt; [NuevaComunicacionDto] (cuerpo de POST /comunicaciones).
+ * Criterios: enumeraciones como `.name`; `destino` es el nombre elegido en el formulario (curso,
+ * taller o apoderado), NO `destinoReferencia`, que vale null para colegio completo; `envios` se
+ * mapea con [aDto]. El cuerpo de una autorización con firma física ya incluye el aviso (RF-12):
+ * no se vuelve a modificar aquí.
+ */
+fun Comunicacion.aNuevaDto(destino: String?, envios: List&lt;EnvioDestinatario&gt;): NuevaComunicacionDto =
+<span class="nc" id="L99">    TODO(&quot;E3-4i: NuevaComunicacionDto(id, asunto, cuerpo, tipo.name, alcance.name, destino, adjuntoPdfNombre, requiereFirmaFisica, envios.map { it.aDto() })&quot;)</span>
+
+/** Comunicado registrado por el servidor, listo para guardarse en Room (ya implementada). */
+<span class="fc" id="L102">data class ComunicacionRegistrada(</span>
+<span class="fc" id="L103">    val comunicacion: Comunicacion,</span>
+<span class="pc" id="L104">    val envios: List&lt;EnvioDestinatario&gt;,</span>
+<span class="fc" id="L105">    val resumen: ResumenEnvio</span>
+)
+
+/**
+ * TODO(E3-4j): [ComunicacionRegistradaDto] -&gt; [ComunicacionRegistrada]. Si falta `comunicacion`
+ * lanza [RespuestaInvalidaException]. Si falta `resumen`, se calcula con `ResumenEnvio.de(envios,
+ * comunicacion.requiereFirmaFisica)`.
+ */
+fun ComunicacionRegistradaDto.aDominio(): ComunicacionRegistrada =
+<span class="nc" id="L114">    TODO(&quot;E3-4j: mapear comunicacion, envios y resumen&quot;)</span>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

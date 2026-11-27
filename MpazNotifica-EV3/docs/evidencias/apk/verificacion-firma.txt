@@ -1,0 +1,17 @@
+﻿Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): false
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+Signer #1 certificate DN: CN=mario pino, OU=Informatica, O=duoc uc, L=maipu, ST=santiago, C=cl
+Signer #1 certificate SHA-256 digest: 645169fd53719a9049db19a502e1105bfdfaeb2b39800a4fcc467ddb42401bef
+Signer #1 certificate SHA-1 digest: 10e4fc99f0517f303cc28e8ddffb2662e1a6692c
+Signer #1 certificate MD5 digest: 39d70f7bd548207aba63cb78bef53123
+Signer #1 key algorithm: RSA
+Signer #1 key size (bits): 2048
+Signer #1 public key SHA-256 digest: 9ddf67c848839d8e38242e43a7cbc311993d1abc63a4e1237db0aee5a5b6caf9
+Signer #1 public key SHA-1 digest: 47ab56bdbe0ce497cee19b5d9c0d9802368b9c86
+Signer #1 public key MD5 digest: 082556f7a98d910b988e1d7d42dca8ef

@@ -1,0 +1,578 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LoginScreen.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.ui.screen</a> &gt; <span class="el_source">LoginScreen.kt</span></div><h1>LoginScreen.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.ui.screen
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.dp
+import com.mpaznotifica.app.R
+import com.mpaznotifica.app.ui.components.AvisoCard
+import com.mpaznotifica.app.ui.components.DialogoServidor
+import com.mpaznotifica.app.ui.components.InterruptorModoLocal
+import com.mpaznotifica.app.ui.components.apoyo
+import com.mpaznotifica.app.viewmodel.MpazNotificaViewModel
+
+/**
+ * RF-01: autenticación diferenciada por perfil.
+ *
+ * Modo local: valida las credenciales almacenadas en Room.
+ * Modo servidor: utiliza la autenticación remota.
+ *
+ * EV3: validaciones, iconos de error, animaciones
+ * e indicador de progreso.
+ */
+@Composable
+fun LoginScreen(
+    viewModel: MpazNotificaViewModel,
+    onIngresar: () -&gt; Unit
+<span class="nc bnc" id="L77" title="All 12 branches missed.">) {</span>
+
+    // Estado de los campos del formulario.
+<span class="nc" id="L80">    var usuario by remember {</span>
+<span class="nc" id="L81">        mutableStateOf(&quot;&quot;)</span>
+    }
+
+<span class="nc" id="L84">    var clave by remember {</span>
+<span class="nc" id="L85">        mutableStateOf(&quot;&quot;)</span>
+    }
+
+    // Controla la visibilidad de la contraseña.
+<span class="nc" id="L89">    var claveVisible by remember {</span>
+<span class="nc" id="L90">        mutableStateOf(false)</span>
+    }
+
+    // Controla la animación de entrada.
+<span class="nc" id="L94">    var contenidoVisible by remember {</span>
+<span class="nc" id="L95">        mutableStateOf(false)</span>
+    }
+
+    // Controla el diálogo de configuración del servidor.
+<span class="nc" id="L99">    var mostrarServidor by rememberSaveable {</span>
+<span class="nc" id="L100">        mutableStateOf(false)</span>
+    }
+
+    // Observa los estados publicados por el ViewModel.
+<span class="nc" id="L104">    val errores by viewModel.erroresLogin.collectAsState()</span>
+
+<span class="nc" id="L106">    val errorCredenciales by</span>
+<span class="nc" id="L107">    viewModel.errorCredenciales.collectAsState()</span>
+
+<span class="nc" id="L109">    val ingresando by viewModel.ingresando.collectAsState()</span>
+
+<span class="nc" id="L111">    val urlServidor by viewModel.urlServidor.collectAsState()</span>
+
+<span class="nc" id="L113">    val modoLocal by viewModel.modoLocal.collectAsState()</span>
+
+<span class="nc" id="L115">    val foco = LocalFocusManager.current</span>
+
+<span class="nc" id="L117">    val errorUsuario = errores.usuario</span>
+
+<span class="nc" id="L119">    val errorClave = errores.clave</span>
+
+    // Activa la animación al ingresar a la pantalla.
+<span class="nc bnc" id="L122" title="All 2 branches missed.">    LaunchedEffect(Unit) {</span>
+<span class="nc" id="L123">        contenidoVisible = true</span>
+<span class="nc" id="L124">    }</span>
+
+    // Envía las credenciales al ViewModel.
+    fun ingresar() {
+
+        // EV3: evita solicitar otro inicio de sesión
+        // mientras existe una operación en curso.
+<span class="nc bnc" id="L131" title="All 2 branches missed.">        if (viewModel.ingresando.value) {</span>
+<span class="nc" id="L132">            return</span>
+        }
+
+<span class="nc" id="L135">        foco.clearFocus()</span>
+
+<span class="nc" id="L137">        viewModel.iniciarSesion(</span>
+<span class="nc" id="L138">            usuario,</span>
+<span class="nc" id="L139">            clave,</span>
+<span class="nc" id="L140">            onIngresar</span>
+        )
+<span class="nc" id="L142">    }</span>
+
+    // Cierra el diálogo del servidor al cambiar a modo local.
+<span class="nc bnc" id="L145" title="All 2 branches missed.">    LaunchedEffect(modoLocal) {</span>
+
+<span class="nc bnc" id="L147" title="All 2 branches missed.">        if (modoLocal) {</span>
+<span class="nc" id="L148">            mostrarServidor = false</span>
+        }
+<span class="nc" id="L150">    }</span>
+
+    // El diálogo del servidor solo aparece en modo remoto.
+<span class="nc bnc" id="L153" title="All 4 branches missed.">    if (!modoLocal &amp;&amp; mostrarServidor) {</span>
+
+<span class="nc" id="L155">        DialogoServidor(</span>
+<span class="nc" id="L156">            viewModel = viewModel,</span>
+
+<span class="nc" id="L158">            onCerrar = {</span>
+<span class="nc" id="L159">                mostrarServidor = false</span>
+<span class="nc" id="L160">            }</span>
+        )
+    }
+
+<span class="nc" id="L164">    Scaffold { padding -&gt;</span>
+
+<span class="nc bnc" id="L166" title="All 4 branches missed.">        Column(</span>
+
+<span class="nc" id="L168">            modifier = Modifier</span>
+<span class="nc" id="L169">                .padding(padding)</span>
+<span class="nc" id="L170">                .fillMaxSize()</span>
+<span class="nc" id="L171">                .verticalScroll(rememberScrollState())</span>
+<span class="nc" id="L172">                .imePadding()</span>
+<span class="nc" id="L173">                .padding(24.dp),</span>
+
+<span class="nc" id="L175">            horizontalAlignment = Alignment.CenterHorizontally,</span>
+
+<span class="nc" id="L177">            verticalArrangement = Arrangement.Center</span>
+        ) {
+
+            // Animación de entrada del formulario.
+<span class="nc" id="L181">            AnimatedVisibility(</span>
+
+<span class="nc" id="L183">                visible = contenidoVisible,</span>
+
+<span class="nc" id="L185">                enter = fadeIn(</span>
+<span class="nc" id="L186">                    animationSpec = tween(500)</span>
+<span class="nc" id="L187">                ) + slideInVertically(</span>
+<span class="nc" id="L188">                    animationSpec = tween(500)</span>
+                ) { alto -&gt;
+<span class="nc" id="L190">                    alto / 6</span>
+                }
+<span class="nc" id="L192">            ) {</span>
+
+<span class="nc" id="L194">                Column(</span>
+
+                    horizontalAlignment =
+<span class="nc" id="L197">                        Alignment.CenterHorizontally,</span>
+
+                    verticalArrangement =
+<span class="nc" id="L200">                        Arrangement.spacedBy(16.dp)</span>
+                ) {
+
+                    // Logotipo de la aplicación.
+<span class="nc" id="L204">                    Image(</span>
+
+<span class="nc" id="L206">                        painter = painterResource(</span>
+<span class="nc" id="L207">                            id = R.drawable.logo_app</span>
+                        ),
+
+                        contentDescription =
+<span class="nc" id="L211">                            &quot;Logo de MPAZ Notifica&quot;,</span>
+
+<span class="nc" id="L213">                        modifier = Modifier.size(110.dp)</span>
+                    )
+
+<span class="nc" id="L216">                    Text(</span>
+<span class="nc" id="L217">                        text = &quot;MPAZ Notifica&quot;,</span>
+                        style =
+<span class="nc" id="L219">                            MaterialTheme.typography.headlineMedium</span>
+                    )
+
+<span class="nc" id="L222">                    Text(</span>
+                        text =
+<span class="nc" id="L224">                            &quot;Ingreso de personal docente y directivo&quot;,</span>
+
+                        style =
+<span class="nc" id="L227">                            MaterialTheme.typography.bodyMedium,</span>
+
+                        color =
+<span class="nc" id="L230">                            MaterialTheme.colorScheme.onSurfaceVariant</span>
+                    )
+
+                    // =================================
+                    // CAMPO DE CORREO INSTITUCIONAL
+                    // =================================
+
+<span class="nc" id="L237">                    OutlinedTextField(</span>
+
+<span class="nc" id="L239">                        value = usuario,</span>
+
+                        onValueChange = {
+
+<span class="nc" id="L243">                            usuario = it</span>
+
+                            // Limpia los errores al corregir el campo.
+                            if (
+<span class="nc bnc" id="L247" title="All 2 branches missed.">                                errorUsuario != null ||</span>
+<span class="nc bnc" id="L248" title="All 2 branches missed.">                                errorCredenciales != null</span>
+                            ) {
+
+<span class="nc" id="L251">                                viewModel.limpiarErroresLogin()</span>
+                            }
+<span class="nc" id="L253">                        },</span>
+
+                        label = {
+                            Text(&quot;Correo institucional&quot;)
+                        },
+
+                        leadingIcon = {
+
+                            Icon(
+                                imageVector = Icons.Filled.Email,
+                                contentDescription = null
+                            )
+                        },
+
+                        // Muestra un icono cuando el correo es inválido.
+<span class="nc bnc" id="L268" title="All 2 branches missed.">                        trailingIcon = if (errorUsuario != null) {</span>
+
+                            {
+
+                                Icon(
+
+                                    imageVector =
+                                        Icons.Filled.ErrorOutline,
+
+                                    contentDescription =
+                                        &quot;Error en el correo institucional&quot;,
+
+                                    tint =
+                                        MaterialTheme.colorScheme.error,
+
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+
+                        } else {
+
+<span class="nc" id="L289">                            null</span>
+                        },
+
+<span class="nc bnc" id="L292" title="All 2 branches missed.">                        isError = errorUsuario != null,</span>
+
+<span class="nc" id="L294">                        supportingText = apoyo(errorUsuario),</span>
+
+<span class="nc" id="L296">                        singleLine = true,</span>
+
+                        // Evita modificar las credenciales durante la carga.
+<span class="nc bnc" id="L299" title="All 2 branches missed.">                        enabled = !ingresando,</span>
+
+<span class="nc" id="L301">                        keyboardOptions = KeyboardOptions(</span>
+
+<span class="nc" id="L303">                            keyboardType = KeyboardType.Email,</span>
+
+<span class="nc" id="L305">                            imeAction = ImeAction.Next</span>
+                        ),
+
+<span class="nc" id="L308">                        keyboardActions = KeyboardActions(</span>
+
+                            onNext = {
+
+<span class="nc" id="L312">                                foco.moveFocus(</span>
+<span class="nc" id="L313">                                    FocusDirection.Down</span>
+                                )
+<span class="nc" id="L315">                            }</span>
+                        ),
+
+<span class="nc" id="L318">                        modifier = Modifier.fillMaxWidth()</span>
+                    )
+
+                    // =================================
+                    // CAMPO DE CONTRASEÑA
+                    // =================================
+
+<span class="nc" id="L325">                    OutlinedTextField(</span>
+
+<span class="nc" id="L327">                        value = clave,</span>
+
+                        onValueChange = {
+
+<span class="nc" id="L331">                            clave = it</span>
+
+                            if (
+<span class="nc bnc" id="L334" title="All 2 branches missed.">                                errorClave != null ||</span>
+<span class="nc bnc" id="L335" title="All 2 branches missed.">                                errorCredenciales != null</span>
+                            ) {
+
+<span class="nc" id="L338">                                viewModel.limpiarErroresLogin()</span>
+                            }
+<span class="nc" id="L340">                        },</span>
+
+                        label = {
+                            Text(&quot;Clave de acceso&quot;)
+                        },
+
+                        leadingIcon = {
+
+                            Icon(
+                                imageVector = Icons.Filled.Lock,
+                                contentDescription = null
+                            )
+                        },
+
+<span class="nc" id="L354">                        trailingIcon = {</span>
+
+<span class="nc bnc" id="L356" title="All 4 branches missed.">                            Row(</span>
+
+                                verticalAlignment =
+<span class="nc" id="L359">                                    Alignment.CenterVertically,</span>
+
+                                horizontalArrangement =
+<span class="nc" id="L362">                                    Arrangement.spacedBy(4.dp),</span>
+
+<span class="nc" id="L364">                                modifier = Modifier.padding(</span>
+<span class="nc" id="L365">                                    start = 4.dp</span>
+                                )
+                            ) {
+
+                                // EV3: muestra el icono de error
+                                // sin eliminar el botón de visibilidad.
+<span class="nc bnc" id="L371" title="All 2 branches missed.">                                if (errorClave != null) {</span>
+
+<span class="nc" id="L373">                                    Icon(</span>
+
+                                        imageVector =
+<span class="nc" id="L376">                                            Icons.Filled.ErrorOutline,</span>
+
+                                        contentDescription =
+<span class="nc" id="L379">                                            &quot;Error en la clave&quot;,</span>
+
+                                        tint =
+<span class="nc" id="L382">                                            MaterialTheme.colorScheme.error,</span>
+
+                                        modifier =
+<span class="nc" id="L385">                                            Modifier.size(24.dp)</span>
+                                    )
+                                }
+
+                                // Permite mostrar u ocultar la contraseña.
+<span class="nc" id="L390">                                IconButton(</span>
+
+<span class="nc bnc" id="L392" title="All 2 branches missed.">                                    enabled = !ingresando,</span>
+
+<span class="nc" id="L394">                                    onClick = {</span>
+
+<span class="nc bnc" id="L396" title="All 2 branches missed.">                                        claveVisible = !claveVisible</span>
+<span class="nc" id="L397">                                    }</span>
+<span class="nc" id="L398">                                ) {</span>
+
+<span class="nc bnc" id="L400" title="All 4 branches missed.">                                    Icon(</span>
+
+                                        imageVector =
+<span class="nc bnc" id="L403" title="All 2 branches missed.">                                            if (claveVisible) {</span>
+
+<span class="nc" id="L405">                                                Icons.Filled.VisibilityOff</span>
+
+                                            } else {
+
+<span class="nc" id="L409">                                                Icons.Filled.Visibility</span>
+                                            },
+
+                                        contentDescription =
+<span class="nc bnc" id="L413" title="All 2 branches missed.">                                            if (claveVisible) {</span>
+
+<span class="nc" id="L415">                                                &quot;Ocultar clave&quot;</span>
+
+                                            } else {
+
+<span class="nc" id="L419">                                                &quot;Mostrar clave&quot;</span>
+                                            },
+
+                                        // El botón del ojo mantiene
+                                        // un color diferente al error.
+                                        tint =
+<span class="nc" id="L425">                                            MaterialTheme.colorScheme</span>
+<span class="nc" id="L426">                                                .onSurfaceVariant</span>
+<span class="nc" id="L427">                                    )</span>
+<span class="nc" id="L428">                                }</span>
+<span class="nc" id="L429">                            }</span>
+<span class="nc" id="L430">                        },</span>
+
+                        // Destaca el campo y muestra el mensaje.
+<span class="nc bnc" id="L433" title="All 2 branches missed.">                        isError = errorClave != null,</span>
+
+<span class="nc" id="L435">                        supportingText = apoyo(errorClave),</span>
+
+<span class="nc" id="L437">                        singleLine = true,</span>
+
+<span class="nc bnc" id="L439" title="All 2 branches missed.">                        enabled = !ingresando,</span>
+
+                        // Oculta la contraseña cuando corresponde.
+                        visualTransformation =
+<span class="nc bnc" id="L443" title="All 2 branches missed.">                            if (claveVisible) {</span>
+
+<span class="nc" id="L445">                                VisualTransformation.None</span>
+
+                            } else {
+
+<span class="nc" id="L449">                                PasswordVisualTransformation()</span>
+                            },
+
+<span class="nc" id="L452">                        keyboardOptions = KeyboardOptions(</span>
+
+<span class="nc" id="L454">                            keyboardType = KeyboardType.Password,</span>
+
+<span class="nc" id="L456">                            imeAction = ImeAction.Done</span>
+                        ),
+
+<span class="nc" id="L459">                        keyboardActions = KeyboardActions(</span>
+
+                            onDone = {
+<span class="nc" id="L462">                                ingresar()</span>
+<span class="nc" id="L463">                            }</span>
+                        ),
+
+<span class="nc" id="L466">                        modifier = Modifier.fillMaxWidth()</span>
+                    )
+
+                    // =================================
+                    // ERROR DE AUTENTICACIÓN
+                    // =================================
+
+<span class="nc" id="L473">                    AnimatedVisibility(</span>
+
+<span class="nc bnc" id="L475" title="All 2 branches missed.">                        visible = errorCredenciales != null,</span>
+
+<span class="nc" id="L477">                        enter = fadeIn(tween(250)) +</span>
+<span class="nc" id="L478">                                expandVertically(tween(250)),</span>
+
+<span class="nc" id="L480">                        exit = fadeOut(tween(200)) +</span>
+<span class="nc" id="L481">                                shrinkVertically(tween(200))</span>
+<span class="nc" id="L482">                    ) {</span>
+
+<span class="nc" id="L484">                        AvisoCard(</span>
+
+<span class="nc bnc" id="L486" title="All 2 branches missed.">                            texto = errorCredenciales.orEmpty(),</span>
+
+<span class="nc" id="L488">                            icono = Icons.Filled.ErrorOutline,</span>
+
+<span class="nc" id="L490">                            esError = true</span>
+                        )
+<span class="nc" id="L492">                    }</span>
+
+                    // =================================
+                    // BOTÓN DE INICIO DE SESIÓN
+                    // =================================
+
+<span class="nc" id="L498">                    Button(</span>
+
+                        onClick = {
+<span class="nc" id="L501">                            ingresar()</span>
+<span class="nc" id="L502">                        },</span>
+
+<span class="nc bnc" id="L504" title="All 2 branches missed.">                        enabled = !ingresando,</span>
+
+<span class="nc" id="L506">                        modifier = Modifier.fillMaxWidth()</span>
+<span class="nc" id="L507">                    ) {</span>
+
+                        // Indicador de progreso mientras valida la sesión.
+<span class="nc bnc" id="L510" title="All 6 branches missed.">                        if (ingresando) {</span>
+
+<span class="nc" id="L512">                            Row(</span>
+
+                                verticalAlignment =
+<span class="nc" id="L515">                                    Alignment.CenterVertically,</span>
+
+                                horizontalArrangement =
+<span class="nc" id="L518">                                    Arrangement.spacedBy(8.dp)</span>
+                            ) {
+
+<span class="nc" id="L521">                                CircularProgressIndicator(</span>
+
+<span class="nc" id="L523">                                    modifier = Modifier.size(18.dp),</span>
+
+<span class="nc" id="L525">                                    strokeWidth = 2.dp,</span>
+
+                                    color =
+<span class="nc" id="L528">                                        MaterialTheme.colorScheme.onPrimary</span>
+                                )
+
+<span class="nc" id="L531">                                Text(&quot;Ingresando…&quot;)</span>
+<span class="nc" id="L532">                            }</span>
+
+<span class="nc" id="L534">                        } else {</span>
+
+<span class="nc" id="L536">                            Text(&quot;Ingresar&quot;)</span>
+<span class="nc" id="L537">                        }</span>
+<span class="nc" id="L538">                    }</span>
+
+                    // =================================
+                    // CONFIGURACIÓN DEL SERVIDOR
+                    // =================================
+
+<span class="nc bnc" id="L544" title="All 2 branches missed.">                    if (!modoLocal) {</span>
+
+<span class="nc" id="L546">                        TextButton(</span>
+
+<span class="nc bnc" id="L548" title="All 2 branches missed.">                            enabled = !ingresando,</span>
+
+<span class="nc" id="L550">                            onClick = {</span>
+
+<span class="nc" id="L552">                                mostrarServidor = true</span>
+<span class="nc" id="L553">                            }</span>
+<span class="nc" id="L554">                        ) {</span>
+
+<span class="nc bnc" id="L556" title="All 4 branches missed.">                            Icon(</span>
+
+<span class="nc" id="L558">                                imageVector = Icons.Filled.Dns,</span>
+
+<span class="nc" id="L560">                                contentDescription = null,</span>
+
+<span class="nc" id="L562">                                modifier = Modifier.size(18.dp)</span>
+                            )
+
+<span class="nc" id="L565">                            Text(&quot;  Servidor: $urlServidor&quot;)</span>
+<span class="nc" id="L566">                        }</span>
+                    }
+
+                    // Permite seleccionar el modo de funcionamiento.
+<span class="nc" id="L570">                    InterruptorModoLocal(</span>
+<span class="nc" id="L571">                        viewModel = viewModel</span>
+                    )
+<span class="nc" id="L573">                }</span>
+<span class="nc" id="L574">            }</span>
+<span class="nc" id="L575">        }</span>
+<span class="nc" id="L576">    }</span>
+<span class="nc bnc" id="L577" title="All 2 branches missed.">}</span>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

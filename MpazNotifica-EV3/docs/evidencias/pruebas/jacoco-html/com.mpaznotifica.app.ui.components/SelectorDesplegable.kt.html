@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SelectorDesplegable.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.ui.components</a> &gt; <span class="el_source">SelectorDesplegable.kt</span></div><h1>SelectorDesplegable.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.ui.components
+
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+
+/**
+ * Lista desplegable reutilizable de Material 3.
+ *
+ * Permite seleccionar tipos, alcances,
+ * destinatarios y canales de comunicación.
+ *
+ * @param opciones Valores disponibles.
+ * @param seleccion Valor seleccionado actualmente.
+ * @param textoDe Texto que representa cada opción.
+ * @param error Mensaje de validación.
+ * @param ayuda Texto de apoyo del selector.
+ * @param leadingIcon Icono inicial del campo.
+ * @param enabled Indica si el campo está habilitado.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun &lt;T&gt; SelectorDesplegable(
+    etiqueta: String,
+    opciones: List&lt;T&gt;,
+    seleccion: T?,
+    textoDe: (T) -&gt; String,
+    onSeleccion: (T) -&gt; Unit,
+<span class="nc bnc" id="L41" title="All 2 branches missed.">    modifier: Modifier = Modifier,</span>
+<span class="nc bnc" id="L42" title="All 2 branches missed.">    textoVacio: String = &quot;Seleccionar…&quot;,</span>
+<span class="nc bnc" id="L43" title="All 2 branches missed.">    error: String? = null,</span>
+<span class="nc bnc" id="L44" title="All 2 branches missed.">    ayuda: String? = null,</span>
+<span class="nc bnc" id="L45" title="All 2 branches missed.">    leadingIcon: (@Composable () -&gt; Unit)? = null,</span>
+<span class="nc" id="L46">    enabled: Boolean = true</span>
+<span class="nc bnc" id="L47" title="All 2 branches missed.">) {</span>
+
+    // Controla la apertura y cierre de la lista.
+<span class="nc" id="L50">    var expandido by remember {</span>
+<span class="nc" id="L51">        mutableStateOf(false)</span>
+    }
+
+    // El mensaje de error tiene prioridad sobre la ayuda.
+<span class="nc bnc" id="L55" title="All 2 branches missed.">    val textoApoyo = error ?: ayuda</span>
+
+    // Cierra la lista si el selector queda deshabilitado.
+<span class="nc bnc" id="L58" title="All 8 branches missed.">    LaunchedEffect(enabled) {</span>
+
+<span class="nc bnc" id="L60" title="All 2 branches missed.">        if (!enabled) {</span>
+<span class="nc" id="L61">            expandido = false</span>
+        }
+<span class="nc" id="L63">    }</span>
+
+<span class="nc bnc" id="L65" title="All 2 branches missed.">    ExposedDropdownMenuBox(</span>
+<span class="nc bnc" id="L66" title="All 10 branches missed.">        expanded = expandido &amp;&amp; enabled,</span>
+
+<span class="nc" id="L68">        onExpandedChange = {</span>
+
+<span class="nc bnc" id="L70" title="All 2 branches missed.">            if (enabled) {</span>
+<span class="nc" id="L71">                expandido = it</span>
+            }
+<span class="nc" id="L73">        },</span>
+
+<span class="nc" id="L75">        modifier = modifier</span>
+<span class="nc" id="L76">    ) {</span>
+
+<span class="nc bnc" id="L78" title="All 4 branches missed.">        OutlinedTextField(</span>
+
+            // Muestra la opción seleccionada.
+<span class="nc bnc" id="L81" title="All 2 branches missed.">            value = if (seleccion != null) {</span>
+<span class="nc" id="L82">                textoDe(seleccion)</span>
+            } else {
+<span class="nc" id="L84">                textoVacio</span>
+            },
+
+<span class="nc" id="L87">            onValueChange = {},</span>
+
+            // Solo permite seleccionar opciones de la lista.
+<span class="nc" id="L90">            readOnly = true,</span>
+
+<span class="nc" id="L92">            enabled = enabled,</span>
+
+<span class="nc" id="L94">            label = {</span>
+<span class="nc bnc" id="L95" title="All 4 branches missed.">                Text(etiqueta)</span>
+<span class="nc" id="L96">            },</span>
+
+<span class="nc" id="L98">            leadingIcon = leadingIcon,</span>
+
+<span class="nc" id="L100">            trailingIcon = {</span>
+
+<span class="nc bnc" id="L102" title="All 4 branches missed.">                ExposedDropdownMenuDefaults.TrailingIcon(</span>
+<span class="nc bnc" id="L103" title="All 4 branches missed.">                    expanded = expandido &amp;&amp; enabled</span>
+<span class="nc" id="L104">                )</span>
+<span class="nc" id="L105">            },</span>
+
+            // Destaca el campo cuando tiene errores.
+<span class="nc bnc" id="L108" title="All 2 branches missed.">            isError = error != null,</span>
+
+<span class="nc" id="L110">            supportingText = apoyo(textoApoyo),</span>
+
+<span class="nc" id="L112">            modifier = Modifier</span>
+<span class="nc" id="L113">                .fillMaxWidth()</span>
+
+                // EV3: reemplaza menuAnchor() obsoleto.
+                // El campo es de solo lectura.
+<span class="nc" id="L117">                .menuAnchor(</span>
+<span class="nc" id="L118">                    type = MenuAnchorType.PrimaryNotEditable,</span>
+<span class="nc" id="L119">                    enabled = enabled</span>
+                )
+        )
+
+<span class="nc" id="L123">        ExposedDropdownMenu(</span>
+
+<span class="nc bnc" id="L125" title="All 4 branches missed.">            expanded = expandido &amp;&amp; enabled,</span>
+
+<span class="nc" id="L127">            onDismissRequest = {</span>
+<span class="nc" id="L128">                expandido = false</span>
+<span class="nc" id="L129">            }</span>
+<span class="nc" id="L130">        ) {</span>
+
+<span class="nc bnc" id="L132" title="All 4 branches missed.">            opciones.forEach { opcion -&gt;</span>
+
+<span class="nc" id="L134">                DropdownMenuItem(</span>
+
+<span class="nc" id="L136">                    text = {</span>
+<span class="nc bnc" id="L137" title="All 4 branches missed.">                        Text(textoDe(opcion))</span>
+<span class="nc" id="L138">                    },</span>
+
+<span class="nc" id="L140">                    enabled = enabled,</span>
+
+                    onClick = {
+
+                        // Entrega la opción seleccionada.
+<span class="nc" id="L145">                        onSeleccion(opcion)</span>
+
+                        // Cierra la lista después de elegir.
+<span class="nc" id="L148">                        expandido = false</span>
+<span class="nc" id="L149">                    }</span>
+                )
+<span class="nc" id="L151">            }</span>
+<span class="nc" id="L152">        }</span>
+<span class="nc" id="L153">    }</span>
+<span class="nc" id="L154">}</span>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

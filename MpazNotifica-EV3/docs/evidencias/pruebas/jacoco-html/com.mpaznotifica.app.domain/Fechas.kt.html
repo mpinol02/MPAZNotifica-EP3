@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Fechas.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.domain</a> &gt; <span class="el_source">Fechas.kt</span></div><h1>Fechas.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.domain
+
+import java.text.ParseException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
+
+/**
+ * Utilidades de fecha compatibles con Android API 24.
+ *
+ * EV3: valida el formato completo antes de convertir fechas.
+ */
+object Fechas {
+
+    private const val PATRON_FECHA_HORA =
+        &quot;yyyy-MM-dd HH:mm:ss&quot;
+
+    private const val PATRON_FECHA =
+        &quot;yyyy-MM-dd&quot;
+
+    // Obtiene la fecha y hora actual del dispositivo.
+    fun ahora(): String =
+<span class="fc" id="L24">        SimpleDateFormat(</span>
+<span class="fc" id="L25">            PATRON_FECHA_HORA,</span>
+<span class="fc" id="L26">            Locale.ROOT</span>
+<span class="fc" id="L27">        ).format(Date())</span>
+
+    // Convierte los milisegundos del DatePicker a fecha.
+    fun deMillisUtc(millis: Long): String {
+
+<span class="fc" id="L32">        val formato = SimpleDateFormat(</span>
+<span class="fc" id="L33">            PATRON_FECHA,</span>
+<span class="fc" id="L34">            Locale.ROOT</span>
+        )
+
+<span class="fc" id="L37">        formato.timeZone =</span>
+<span class="fc" id="L38">            TimeZone.getTimeZone(&quot;UTC&quot;)</span>
+
+<span class="fc" id="L40">        return formato.format(Date(millis))</span>
+    }
+
+    // Convierte una fecha válida a milisegundos UTC.
+    fun aMillisUtc(fecha: String): Long? {
+
+        // EV3: valida la fecha antes de convertirla.
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        if (!ReglasHistorial.fechaValida(fecha)) {</span>
+<span class="fc" id="L48">            return null</span>
+        }
+
+<span class="fc" id="L51">        val formato = SimpleDateFormat(</span>
+<span class="fc" id="L52">            PATRON_FECHA,</span>
+<span class="fc" id="L53">            Locale.ROOT</span>
+        )
+
+<span class="fc" id="L56">        formato.timeZone =</span>
+<span class="fc" id="L57">            TimeZone.getTimeZone(&quot;UTC&quot;)</span>
+
+<span class="fc" id="L59">        formato.isLenient = false</span>
+
+<span class="fc" id="L61">        return try {</span>
+
+<span class="pc bpc" id="L63" title="1 of 2 branches missed.">            formato.parse(fecha)?.time</span>
+
+<span class="nc" id="L65">        } catch (e: ParseException) {</span>
+
+<span class="pc" id="L67">            null</span>
+        }
+    }
+
+    // Convierte la fecha y hora a un formato legible.
+    fun legible(fechaHora: String): String {
+
+<span class="fc bfc" id="L74" title="All 2 branches covered.">        val coincidencia = Regex(</span>
+<span class="fc" id="L75">            &quot;&quot;&quot;^(\d{4})-(\d{2})-(\d{2}) (\d{2}:\d{2})&quot;&quot;&quot;</span>
+<span class="fc" id="L76">        ).find(fechaHora) ?: return fechaHora</span>
+
+<span class="fc" id="L78">        val (anio, mes, dia, hora) =</span>
+<span class="fc" id="L79">            coincidencia.destructured</span>
+
+<span class="fc" id="L81">        return &quot;$dia-$mes-$anio $hora&quot;</span>
+    }
+
+    // Muestra una fecha en formato DD-MM-AAAA.
+    fun fechaLegible(fecha: String): String {
+
+<span class="fc" id="L87">        val partes = fecha.split(&quot;-&quot;)</span>
+
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">        return if (partes.size == 3) {</span>
+
+<span class="fc" id="L91">            &quot;${partes[2]}-${partes[1]}-${partes[0]}&quot;</span>
+
+        } else {
+
+<span class="nc" id="L95">            fecha</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

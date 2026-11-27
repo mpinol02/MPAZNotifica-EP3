@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ModoDatos.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.data.repository</a> &gt; <span class="el_source">ModoDatos.kt</span></div><h1>ModoDatos.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.data.repository
+
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
+/**
+ * Preferencia persistente &quot;modo local / modo servidor&quot;.
+ *
+ *  - Modo local: la app opera solo con su base Room (sin red), con las mismas reglas de negocio.
+ *    Es el respaldo para poder demostrar todo el día de la defensa si el servicio no está disponible.
+ *  - Modo servidor: la ruta normal (API + caché Room). Es el que se demuestra en la defensa.
+ *
+ * El valor se consulta con [esLocal] EN CADA OPERACIÓN (no solo al arrancar), de modo que el
+ * cambio es inmediato. [modoLocal] avisa a quien observa (datos en pantalla, franja de modo).
+ */
+interface PreferenciaModo {
+    val modoLocal: StateFlow&lt;Boolean&gt;
+
+    fun esLocal(): Boolean
+
+    fun cambiar(local: Boolean)
+}
+
+/** Implementación en memoria (sin Android): la usan las pruebas JVM. */
+<span class="fc" id="L26">class ModoEnMemoria(inicialLocal: Boolean) : PreferenciaModo {</span>
+<span class="fc" id="L27">    private val estado = MutableStateFlow(inicialLocal)</span>
+
+<span class="fc" id="L29">    override val modoLocal: StateFlow&lt;Boolean&gt; = estado.asStateFlow()</span>
+
+<span class="fc" id="L31">    override fun esLocal(): Boolean = estado.value</span>
+
+    override fun cambiar(local: Boolean) {
+<span class="fc" id="L34">        estado.value = local</span>
+<span class="fc" id="L35">    }</span>
+}
+
+/** Regla de qué modo vale al leer la preferencia guardada (pura, probada en JVM). */
+object ResolucionModo {
+    /**
+     * [guardado]: lo que el usuario eligió con el interruptor (null si nunca lo usó).
+     * [inicialGuardado]: el valor inicial de compilación que regía cuando eligió.
+     * [inicialLocal]: el valor inicial de esta compilación.
+     *
+     * Si nunca eligió, vale el valor inicial. Si eligió pero desde entonces cambió el valor inicial
+     * de compilación (se editó gradle.properties y se recompiló), la elección antigua ya no vale y
+     * rige el nuevo valor inicial. En cualquier otro caso manda la elección del usuario.
+     */
+<span class="fc" id="L49">    fun esLocal(guardado: Boolean?, inicialGuardado: Boolean?, inicialLocal: Boolean): Boolean = when {</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">        guardado == null -&gt; inicialLocal</span>
+<span class="pc bpc" id="L51" title="1 of 4 branches missed.">        inicialGuardado != null &amp;&amp; inicialGuardado != inicialLocal -&gt; inicialLocal</span>
+<span class="fc" id="L52">        else -&gt; guardado</span>
+<span class="fc" id="L53">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

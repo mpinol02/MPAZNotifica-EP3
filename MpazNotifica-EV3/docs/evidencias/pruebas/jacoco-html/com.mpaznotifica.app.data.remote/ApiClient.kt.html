@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ApiClient.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.data.remote</a> &gt; <span class="el_source">ApiClient.kt</span></div><h1>ApiClient.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.data.remote
+
+import okhttp3.Interceptor
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import retrofit2.Retrofit
+import java.io.IOException
+
+/*
+ * EXPERIENCIA 3 - Parte 2 (TODO E3-1): cliente HTTP.
+ *
+ * Esta clase fabrica las implementaciones Retrofit de [ApiService] y [MensajeriaApi] contra la
+ * dirección activa de [ConfiguracionServidor]. Solo se usa en modo servidor.
+ */
+
+/**
+ * TODO(E3-1a): agrega el token Bearer de la sesión a cada petición.
+ * Archivo: este (clase [InterceptorToken]).
+ * Criterio de aceptación: si [SesionApi.token] no es null y la petición NO trae ya la cabecera
+ * Authorization, la petición sale con `Authorization: Bearer &lt;token&gt;`; sin token sale intacta.
+ * Debe terminar llamando a `chain.proceed(...)`.
+ */
+<span class="nc" id="L24">class InterceptorToken(private val sesion: SesionApi) : Interceptor {</span>
+    override fun intercept(chain: Interceptor.Chain): Response {
+<span class="nc" id="L26">        TODO(&quot;E3-1a: agregar la cabecera Authorization: Bearer &lt;token&gt; cuando exista sesión&quot;)</span>
+    }
+}
+
+/**
+ * Última defensa del tráfico sin cifrar (ya implementada): Android no permite expresar rangos de IP
+ * en network_security_config, así que aquí se rechaza cualquier http:// hacia un host que no sea
+ * local (ver [UrlServidor.permiteCleartext]).
+ */
+<span class="nc" id="L35">class GuardiaCleartext : Interceptor {</span>
+    override fun intercept(chain: Interceptor.Chain): Response {
+<span class="nc" id="L37">        val peticion = chain.request()</span>
+<span class="nc bnc" id="L38" title="All 4 branches missed.">        if (!peticion.isHttps &amp;&amp; !UrlServidor.permiteCleartext(peticion.url.host)) {</span>
+<span class="nc" id="L39">            throw IOException(&quot;Tráfico sin cifrar no permitido hacia ${peticion.url.host}&quot;)</span>
+        }
+<span class="nc" id="L41">        return chain.proceed(peticion)</span>
+    }
+}
+
+/**
+ * Ya implementada: cabecera que pide a los túneles de VS Code (Port Forwarding) no mostrar su
+ * página de aviso intermedia, y pide JSON al servidor.
+ */
+<span class="nc" id="L49">class InterceptorTunel : Interceptor {</span>
+    override fun intercept(chain: Interceptor.Chain): Response {
+<span class="nc" id="L51">        val peticion: Request = chain.request().newBuilder()</span>
+<span class="nc" id="L52">            .header(&quot;X-Tunnel-Skip-AntiPhishing-Page&quot;, &quot;true&quot;)</span>
+<span class="nc" id="L53">            .header(&quot;Accept&quot;, &quot;application/json&quot;)</span>
+<span class="nc" id="L54">            .build()</span>
+<span class="nc" id="L55">        return chain.proceed(peticion)</span>
+    }
+}
+
+/**
+ * Crea los clientes Retrofit contra la dirección activa de [configuracion]. Si el usuario cambia la
+ * dirección (diálogo &quot;Servidor&quot;), la siguiente llamada debe reconstruir el cliente: no hace falta
+ * reiniciar la app.
+ */
+<span class="nc" id="L64">class ApiClient(</span>
+<span class="nc" id="L65">    private val configuracion: ConfiguracionServidor,</span>
+<span class="nc" id="L66">    private val sesion: SesionApi,</span>
+<span class="nc" id="L67">    private val interceptoresDepuracion: List&lt;Interceptor&gt; = RegistroHttp.interceptores()</span>
+<span class="nc" id="L68">) {</span>
+
+    /**
+     * TODO(E3-1d): entrega el [ApiService] para la URL activa.
+     * Archivo: este. Criterio: usa `configuracion.urlBase()`; reutiliza la misma instancia mientras
+     * la URL no cambie y construye una nueva (con [crearRetrofit] y [clienteHttp]) si cambió.
+     */
+    fun api(): ApiService =
+<span class="nc" id="L76">        TODO(&quot;E3-1d: crear/reutilizar Retrofit.create(ApiService::class.java) para configuracion.urlBase()&quot;)</span>
+
+    /** TODO(E3-1d): igual que [api], para [MensajeriaApi] (POST /mensajes). Debe compartir el cliente HTTP. */
+    fun mensajeria(): MensajeriaApi =
+<span class="nc" id="L80">        TODO(&quot;E3-1d: Retrofit.create(MensajeriaApi::class.java) con el mismo Retrofit que api()&quot;)</span>
+
+    /**
+     * TODO(E3-9c): &quot;Probar conexión&quot;. GET /health a una dirección candidata, sin token y con plazo
+     * corto (6 s).
+     * Archivo: este. Criterios: si `UrlServidor.validar(urlCandidata)` da error, devuelve
+     * `ApiResult.Error(mensaje, CausaError.VALIDACION, campo = &quot;url&quot;)` sin llamar a la red; si la
+     * respuesta no trae `estado == &quot;ok&quot;`, devuelve error de respuesta inválida (lanza
+     * [RespuestaInvalidaException] dentro de [ManejadorErrores.llamar]); en los demás casos
+     * devuelve el [SaludDto].
+     */
+    suspend fun probarConexion(urlCandidata: String): ApiResult&lt;SaludDto&gt; =
+<span class="nc" id="L92">        TODO(&quot;E3-9c: validar la URL, crear un Retrofit con plazo de 6 s sin token y llamar a salud()&quot;)</span>
+
+    /**
+     * TODO(E3-1b): construye el [OkHttpClient].
+     * Archivo: este. Criterios: connectTimeout = min(plazoSegundos, 10) s; readTimeout y
+     * writeTimeout = plazoSegundos; callTimeout = plazoSegundos + 10 s; interceptores en este
+     * orden: [GuardiaCleartext], [InterceptorTunel], [InterceptorToken] (solo si [conToken]) y
+     * luego todos los de [interceptoresDepuracion].
+     */
+<span class="nc" id="L101">    private fun clienteHttp(conToken: Boolean, plazoSegundos: Long = 20): OkHttpClient =</span>
+<span class="nc" id="L102">        TODO(&quot;E3-1b: OkHttpClient.Builder con timeouts e interceptores&quot;)</span>
+
+    companion object {
+        /**
+         * TODO(E3-1c): construye el [Retrofit].
+         * Archivo: este. Criterios: `baseUrl(urlBase)`, `client(cliente)` y conversor Gson
+         * (`GsonConverterFactory.create()`).
+         */
+        fun crearRetrofit(urlBase: String, cliente: OkHttpClient): Retrofit =
+<span class="nc" id="L111">            TODO(&quot;E3-1c: Retrofit.Builder().baseUrl(...).client(...).addConverterFactory(GsonConverterFactory.create()).build()&quot;)</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

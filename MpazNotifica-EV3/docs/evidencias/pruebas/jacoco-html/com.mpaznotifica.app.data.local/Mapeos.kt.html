@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Mapeos.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.data.local</a> &gt; <span class="el_source">Mapeos.kt</span></div><h1>Mapeos.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.data.local
+
+import com.mpaznotifica.app.model.AlcanceEnvio
+import com.mpaznotifica.app.model.Apoderado
+import com.mpaznotifica.app.model.CanalDespacho
+import com.mpaznotifica.app.model.Comunicacion
+import com.mpaznotifica.app.model.EnvioDestinatario
+import com.mpaznotifica.app.model.EstadoEnvio
+import com.mpaznotifica.app.model.Perfil
+import com.mpaznotifica.app.model.TipoComunicacion
+import com.mpaznotifica.app.model.Usuario
+
+// Conversión entidad (tabla) &lt;-&gt; modelo de la aplicación.
+
+<span class="fc" id="L15">fun UsuarioEntity.aModelo() = Usuario(id, nombre, usuario, claveHash, Perfil.valueOf(perfil), cursoAsignado)</span>
+
+<span class="fc" id="L17">fun Usuario.aEntidad() = UsuarioEntity(id, nombre, usuario, claveHash, perfil.name, cursoAsignado)</span>
+
+fun ApoderadoEntity.aModelo(pupilosIds: List&lt;String&gt;) =
+<span class="fc" id="L20">    Apoderado(id, nombreCompleto, correo, telefono, CanalDespacho.valueOf(canalPreferente), pupilosIds)</span>
+
+<span class="fc" id="L22">fun Apoderado.aEntidad() = ApoderadoEntity(id, nombreCompleto, correo, telefono, canalPreferente.name)</span>
+
+<span class="fc" id="L24">fun ComunicacionEntity.aModelo() = Comunicacion(</span>
+<span class="fc" id="L25">    id = id,</span>
+<span class="fc" id="L26">    asunto = asunto,</span>
+<span class="fc" id="L27">    cuerpo = cuerpo,</span>
+<span class="fc" id="L28">    tipo = TipoComunicacion.valueOf(tipo),</span>
+<span class="fc" id="L29">    alcance = AlcanceEnvio.valueOf(alcance),</span>
+<span class="fc" id="L30">    destinoReferencia = destinoReferencia,</span>
+<span class="fc" id="L31">    adjuntoPdfNombre = adjuntoPdfNombre,</span>
+<span class="fc" id="L32">    requiereFirmaFisica = requiereFirmaFisica,</span>
+<span class="fc" id="L33">    autorId = autorId,</span>
+<span class="fc" id="L34">    autorNombre = autorNombre,</span>
+<span class="fc" id="L35">    fechaHora = fechaHora</span>
+<span class="fc" id="L36">)</span>
+
+<span class="fc" id="L38">fun Comunicacion.aEntidad() = ComunicacionEntity(</span>
+<span class="fc" id="L39">    id = id,</span>
+<span class="fc" id="L40">    asunto = asunto,</span>
+<span class="fc" id="L41">    cuerpo = cuerpo,</span>
+<span class="fc" id="L42">    tipo = tipo.name,</span>
+<span class="fc" id="L43">    alcance = alcance.name,</span>
+<span class="fc" id="L44">    destinoReferencia = destinoReferencia,</span>
+<span class="fc" id="L45">    adjuntoPdfNombre = adjuntoPdfNombre,</span>
+<span class="fc" id="L46">    requiereFirmaFisica = requiereFirmaFisica,</span>
+<span class="fc" id="L47">    autorId = autorId,</span>
+<span class="fc" id="L48">    autorNombre = autorNombre,</span>
+<span class="fc" id="L49">    fechaHora = fechaHora</span>
+<span class="fc" id="L50">)</span>
+
+<span class="fc" id="L52">fun EnvioEntity.aModelo() = EnvioDestinatario(</span>
+<span class="fc" id="L53">    id = id,</span>
+<span class="fc" id="L54">    comunicacionId = comunicacionId,</span>
+<span class="fc" id="L55">    apoderadoId = apoderadoId,</span>
+<span class="fc" id="L56">    canal = CanalDespacho.valueOf(canal),</span>
+<span class="fc" id="L57">    estado = EstadoEnvio.valueOf(estado),</span>
+<span class="fc" id="L58">    detalle = detalle</span>
+<span class="fc" id="L59">)</span>
+
+<span class="fc" id="L61">fun EnvioDestinatario.aEntidad() = EnvioEntity(</span>
+<span class="fc" id="L62">    id = id,</span>
+<span class="fc" id="L63">    comunicacionId = comunicacionId,</span>
+<span class="fc" id="L64">    apoderadoId = apoderadoId,</span>
+<span class="fc" id="L65">    canal = canal.name,</span>
+<span class="fc" id="L66">    estado = estado.name,</span>
+<span class="fc" id="L67">    detalle = detalle</span>
+<span class="fc" id="L68">)</span>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

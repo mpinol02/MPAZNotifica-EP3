@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UrlServidor.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.data.remote</a> &gt; <span class="el_source">UrlServidor.kt</span></div><h1>UrlServidor.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.data.remote
+
+import java.net.URI
+import java.net.URISyntaxException
+
+/**
+ * EXPERIENCIA 3 - Parte 3 (TODO E3-9a): validación de la dirección del servidor (diálogo &quot;Servidor&quot;
+ * de la pantalla de ingreso). Kotlin puro: se prueba en JVM sin emulador.
+ *
+ * Reglas: esquema http o https, host presente, puerto 1..65535, sin usuario/clave, consulta ni
+ * fragmento. https se acepta para cualquier host; http (sin cifrar) solo para desarrollo local:
+ * 10.0.2.2 (emulador), localhost, 127.x y redes privadas (10.x, 172.16-31.x, 192.168.x, 169.254.x).
+ */
+object UrlServidor {
+
+    const val DEFECTO = &quot;http://10.0.2.2:3000/&quot;
+
+    const val MSG_VACIA = &quot;Ingresa la dirección del servidor&quot;
+    const val MSG_FORMATO = &quot;La dirección no es válida. Ejemplo: http://192.168.1.10:3000/&quot;
+    const val MSG_ESQUEMA = &quot;La dirección debe comenzar con http:// o https://&quot;
+    const val MSG_HOST = &quot;Falta el nombre o la IP del servidor&quot;
+    const val MSG_PUERTO = &quot;El puerto debe estar entre 1 y 65535&quot;
+    const val MSG_EXTRAS = &quot;La dirección no debe incluir usuario, parámetros ni #&quot;
+    const val MSG_CLEARTEXT =
+        &quot;Una dirección pública debe usar https://. El http:// solo se permite hacia 10.0.2.2, localhost o una IP de red local&quot;
+
+    /** Texto limpio y terminado en &quot;/&quot; (lo exige Retrofit). No valida: usar [validar] antes. */
+    fun normalizar(texto: String): String {
+<span class="nc" id="L29">        val limpio = texto.trim()</span>
+<span class="nc bnc" id="L30" title="All 2 branches missed.">        return if (limpio.endsWith(&quot;/&quot;)) limpio else &quot;$limpio/&quot;</span>
+    }
+
+    /**
+     * TODO(E3-9a): mensaje de error para mostrar bajo el campo, o null si la dirección sirve.
+     * Archivo: este. Criterio de aceptación (en este orden; devuelve el primer error que encuentre):
+     *  1. Vacía o en blanco -&gt; [MSG_VACIA].
+     *  2. Con espacios en medio -&gt; [MSG_FORMATO].
+     *  3. Sin &quot;://&quot; -&gt; [MSG_ESQUEMA].
+     *  4. `java.net.URI` no la puede interpretar ([URISyntaxException]) -&gt; [MSG_FORMATO].
+     *  5. Esquema distinto de http/https -&gt; [MSG_ESQUEMA].
+     *  6. Sin host -&gt; [MSG_HOST] (si tampoco hay `authority`) o [MSG_FORMATO].
+     *  7. Con usuario/clave, consulta (?) o fragmento (#) -&gt; [MSG_EXTRAS].
+     *  8. Puerto explícito fuera de 1..65535 -&gt; [MSG_PUERTO].
+     *  9. http hacia un host para el que [permiteCleartext] es false -&gt; [MSG_CLEARTEXT].
+     * 10. En cualquier otro caso -&gt; null. Mayúsculas en el esquema se aceptan (&quot;HTTPS://...&quot;).
+     * Casos que debe resolver: &quot;http://10.0.2.2:3000/&quot; (ok), &quot;https://miservidor.example.com&quot; (ok),
+     * &quot;http://miservidor.example.com&quot; ([MSG_CLEARTEXT]), &quot;ftp://x&quot; ([MSG_ESQUEMA]),
+     * &quot;http://localhost:99999&quot; ([MSG_PUERTO]), &quot;http://a b&quot; ([MSG_FORMATO]).
+     */
+    fun validar(texto: String): String? =
+<span class="nc" id="L51">        TODO(&quot;E3-9a: aplicar las 10 reglas del comentario con java.net.URI&quot;)</span>
+
+<span class="nc bnc" id="L53" title="All 2 branches missed.">    fun esValida(texto: String): Boolean = validar(texto) == null</span>
+
+    /** true si se puede usar http sin cifrar hacia [host] (desarrollo local). Ya implementada. */
+    fun permiteCleartext(host: String): Boolean {
+<span class="nc" id="L57">        val h = host.trim().lowercase().removePrefix(&quot;[&quot;).removeSuffix(&quot;]&quot;)</span>
+<span class="nc bnc" id="L58" title="All 10 branches missed.">        if (h == &quot;localhost&quot; || h == &quot;10.0.2.2&quot; || h == &quot;::1&quot;) return true</span>
+<span class="nc" id="L59">        val octetos = h.split(&quot;.&quot;)</span>
+<span class="nc bnc" id="L60" title="All 2 branches missed.">        if (octetos.size != 4) return false</span>
+<span class="nc bnc" id="L61" title="All 2 branches missed.">        val n = octetos.map { it.toIntOrNull() ?: return false }</span>
+<span class="nc bnc" id="L62" title="All 8 branches missed.">        if (n.any { it !in 0..255 }) return false</span>
+<span class="nc" id="L63">        return when {</span>
+<span class="nc bnc" id="L64" title="All 2 branches missed.">            n[0] == 127 -&gt; true</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">            n[0] == 10 -&gt; true</span>
+<span class="nc bnc" id="L66" title="All 8 branches missed.">            n[0] == 172 &amp;&amp; n[1] in 16..31 -&gt; true</span>
+<span class="nc bnc" id="L67" title="All 4 branches missed.">            n[0] == 192 &amp;&amp; n[1] == 168 -&gt; true</span>
+<span class="nc bnc" id="L68" title="All 4 branches missed.">            n[0] == 169 &amp;&amp; n[1] == 254 -&gt; true</span>
+<span class="nc" id="L69">            else -&gt; false</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

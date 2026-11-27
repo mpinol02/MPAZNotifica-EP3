@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ServiciosMock.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.data.remote</a> &gt; <span class="el_source">ServiciosMock.kt</span></div><h1>ServiciosMock.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.data.remote
+
+import com.mpaznotifica.app.domain.ValidadorContacto
+import com.mpaznotifica.app.model.CanalDespacho
+import kotlinx.coroutines.delay
+
+/**
+ * Servicio mockeado de un canal (RF-07). No existe cliente HTTP ni SDK de mensajería: espera
+ * una latencia corta (delay suspende sin bloquear la interfaz) y responde según el dato de
+ * contacto. Con un contacto inválido o ausente para el canal, el despacho FALLA.
+ */
+<span class="fc" id="L12">abstract class ServicioMock(</span>
+<span class="fc" id="L13">    val canal: CanalDespacho,</span>
+<span class="fc" id="L14">    private val latenciaMs: Long</span>
+) {
+    suspend fun enviar(mensaje: MensajeDto): RespuestaEnvioDto {
+<span class="fc" id="L17">        delay(latenciaMs)</span>
+<span class="fc bfc" id="L18" title="All 2 branches covered.">        return if (ValidadorContacto.contactoValido(canal, mensaje.destinatario)) {</span>
+<span class="fc" id="L19">            RespuestaEnvioDto(true, &quot;Despachado (simulado) por ${canal.etiqueta}&quot;)</span>
+        } else {
+<span class="fc" id="L21">            RespuestaEnvioDto(false, ValidadorContacto.motivoInvalido(canal))</span>
+        }
+    }
+}
+
+<span class="fc" id="L26">class MockEmailService(latenciaMs: Long = LATENCIA_POR_DEFECTO_MS) :</span>
+<span class="fc" id="L27">    ServicioMock(CanalDespacho.EMAIL, latenciaMs)</span>
+
+<span class="fc" id="L29">class MockSmsService(latenciaMs: Long = LATENCIA_POR_DEFECTO_MS) :</span>
+<span class="fc" id="L30">    ServicioMock(CanalDespacho.SMS, latenciaMs)</span>
+
+<span class="fc" id="L32">class MockWhatsAppService(latenciaMs: Long = LATENCIA_POR_DEFECTO_MS) :</span>
+<span class="fc" id="L33">    ServicioMock(CanalDespacho.WHATSAPP, latenciaMs)</span>
+
+private const val LATENCIA_POR_DEFECTO_MS = 250L
+
+/** Enruta cada mensaje al servicio mock de su canal. */
+<span class="fc" id="L38">class MensajeriaSimulada(</span>
+<span class="fc" id="L39">    servicios: List&lt;ServicioMock&gt; = listOf(MockEmailService(), MockSmsService(), MockWhatsAppService())</span>
+<span class="fc" id="L40">) : MensajeriaApi {</span>
+
+<span class="fc" id="L42">    private val porCanal: Map&lt;CanalDespacho, ServicioMock&gt; = servicios.associateBy { it.canal }</span>
+
+    override suspend fun enviar(mensaje: MensajeDto): RespuestaEnvioDto =
+<span class="pc bpc" id="L45" title="1 of 4 branches missed.">        porCanal[mensaje.canal]?.enviar(mensaje)</span>
+<span class="fc" id="L46">            ?: RespuestaEnvioDto(false, &quot;Servicio no disponible para ${mensaje.canal.etiqueta}&quot;)</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

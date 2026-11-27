@@ -1,0 +1,1325 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MpazNotificaViewModel.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.viewmodel</a> &gt; <span class="el_source">MpazNotificaViewModel.kt</span></div><h1>MpazNotificaViewModel.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.viewmodel
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.mpaznotifica.app.BuildConfig
+import com.mpaznotifica.app.data.local.AppDatabase
+import com.mpaznotifica.app.data.remote.ApiClient
+import com.mpaznotifica.app.data.remote.ApiResult
+import com.mpaznotifica.app.data.remote.ConfiguracionServidor
+import com.mpaznotifica.app.data.remote.CausaError
+import com.mpaznotifica.app.data.remote.Despachador
+import com.mpaznotifica.app.data.remote.FuenteRemota
+import com.mpaznotifica.app.data.remote.PreferenciasUrl
+import com.mpaznotifica.app.data.remote.SesionApi
+import com.mpaznotifica.app.data.remote.UrlServidor
+import com.mpaznotifica.app.data.repository.FuenteLocal
+import com.mpaznotifica.app.data.repository.FuenteServidor
+import com.mpaznotifica.app.data.repository.MpazRepository
+import com.mpaznotifica.app.data.repository.PreferenciasModo
+import com.mpaznotifica.app.data.repository.RoomCache
+import com.mpaznotifica.app.data.repository.SelectorFuente
+import com.mpaznotifica.app.domain.Credenciales
+import com.mpaznotifica.app.domain.DatosReferencia
+import com.mpaznotifica.app.domain.Fechas
+import com.mpaznotifica.app.domain.FiltrosHistorial
+import com.mpaznotifica.app.domain.ReglasComunicado
+import com.mpaznotifica.app.domain.ReglasHistorial
+import com.mpaznotifica.app.domain.ValidadorContacto
+import com.mpaznotifica.app.model.AlcanceEnvio
+import com.mpaznotifica.app.model.Apoderado
+import com.mpaznotifica.app.model.CanalDespacho
+import com.mpaznotifica.app.model.Comunicacion
+import com.mpaznotifica.app.model.Destinatario
+import com.mpaznotifica.app.model.EnvioDestinatario
+import com.mpaznotifica.app.model.ErroresComunicado
+import com.mpaznotifica.app.model.ErroresLogin
+import com.mpaznotifica.app.model.EstadoDatos
+import com.mpaznotifica.app.model.EstadoEnvioUi
+import com.mpaznotifica.app.model.PruebaServidor
+import com.mpaznotifica.app.model.ResumenEnvio
+import com.mpaznotifica.app.model.SolicitudComunicado
+import com.mpaznotifica.app.model.TipoComunicacion
+import com.mpaznotifica.app.model.Usuario
+import com.mpaznotifica.app.nativo.ArchivosPdf
+import com.mpaznotifica.app.nativo.EstadoRed
+import com.mpaznotifica.app.nativo.Notificador
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import java.util.UUID
+
+/**
+ * ViewModel único, compartido por todas las pantallas.
+ *
+ * Arquitectura MVVM:
+ * - Las pantallas muestran los datos.
+ * - El ViewModel administra el estado y las operaciones.
+ * - El dominio contiene las reglas de negocio.
+ * - El repositorio administra la persistencia.
+ *
+ * Modo local: Room y despacho simulado.
+ * Modo servidor: API REST y caché Room.
+ *
+ * EV3: se incorpora el ID del comunicado a la notificación
+ * para permitir el acceso directo a su detalle.
+ */
+<span class="nc" id="L78">class MpazNotificaViewModel(</span>
+    application: Application
+<span class="nc" id="L80">) : AndroidViewModel(application) {</span>
+
+    // =====================================================
+    // CONFIGURACIÓN Y REPOSITORIO
+    // =====================================================
+
+    // Configuración de los componentes del modo servidor.
+<span class="nc" id="L87">    private val configuracion = ConfiguracionServidor(</span>
+<span class="nc" id="L88">        PreferenciasUrl(application),</span>
+<span class="nc" id="L89">        BuildConfig.API_BASE_URL</span>
+    )
+
+<span class="nc" id="L92">    private val sesionApi = SesionApi()</span>
+
+<span class="nc" id="L94">    private val cliente = ApiClient(</span>
+<span class="nc" id="L95">        configuracion,</span>
+<span class="nc" id="L96">        sesionApi</span>
+    )
+
+    // Guarda la preferencia de funcionamiento local o remoto.
+<span class="nc" id="L100">    private val preferenciaModo = PreferenciasModo(</span>
+<span class="nc" id="L101">        application,</span>
+<span class="nc" id="L102">        inicialLocal = !BuildConfig.USAR_API</span>
+    )
+
+    /**
+     * Selecciona la fuente de datos según el modo activo.
+     *
+     * Modo local: mpaz_local.db.
+     * Modo servidor: mpaz_notifica.db como caché.
+     *
+     * Las bases son independientes.
+     */
+<span class="nc" id="L113">    private val repositorio = SelectorFuente(</span>
+<span class="nc" id="L114">        preferencia = preferenciaModo,</span>
+<span class="nc" id="L115">        local = FuenteLocal(</span>
+<span class="nc" id="L116">            RoomCache(</span>
+<span class="nc" id="L117">                AppDatabase.obtenerLocal(application)</span>
+            )
+        ),
+<span class="nc" id="L120">        servidor = FuenteServidor(</span>
+<span class="nc" id="L121">            MpazRepository(</span>
+<span class="nc" id="L122">                AppDatabase.obtener(application),</span>
+<span class="nc" id="L123">                FuenteRemota { cliente.api() }</span>
+            )
+<span class="nc" id="L125">        ) { cliente.mensajeria() }</span>
+    )
+
+    // Recurso nativo encargado de las notificaciones.
+<span class="nc" id="L129">    private val notificador = Notificador(application)</span>
+
+    // Carga los datos iniciales al crear el ViewModel.
+<span class="nc" id="L132">    init {</span>
+<span class="nc" id="L133">        viewModelScope.launch {</span>
+<span class="nc" id="L134">            repositorio.asegurarDatosIniciales()</span>
+<span class="nc" id="L135">        }</span>
+<span class="nc" id="L136">    }</span>
+
+    // Genera un mensaje según el estado de la conexión.
+    private fun textoSinConexion(
+        resultado: ApiResult.SinConexion
+    ): String =
+<span class="nc bnc" id="L142" title="All 2 branches missed.">        if (!EstadoRed.disponible(getApplication())) {</span>
+<span class="nc" id="L143">            &quot;El dispositivo no tiene conexión a internet.&quot;</span>
+        } else {
+<span class="nc" id="L145">            resultado.mensaje</span>
+<span class="nc" id="L146">        }</span>
+
+    // Convierte un Flow en un StateFlow observable por Compose.
+    private fun &lt;T&gt; Flow&lt;T&gt;.comoEstado(
+        inicial: T
+    ): StateFlow&lt;T&gt; =
+<span class="nc" id="L152">        stateIn(</span>
+<span class="nc" id="L153">            viewModelScope,</span>
+<span class="nc" id="L154">            SharingStarted.Eagerly,</span>
+<span class="nc" id="L155">            inicial</span>
+<span class="nc" id="L156">        )</span>
+
+    // =====================================================
+    // DATOS DE REFERENCIA Y BITÁCORA
+    // =====================================================
+
+    // Usuarios disponibles para filtrar por emisor.
+<span class="nc" id="L163">    val emisores: StateFlow&lt;List&lt;Usuario&gt;&gt; =</span>
+<span class="nc" id="L164">        repositorio.usuarios.comoEstado(emptyList())</span>
+
+    // Combina los datos necesarios para aplicar las reglas.
+<span class="nc" id="L167">    val datos: StateFlow&lt;DatosReferencia&gt; =</span>
+<span class="nc" id="L168">        combine(</span>
+<span class="nc" id="L169">            repositorio.talleres,</span>
+<span class="nc" id="L170">            repositorio.estudiantes,</span>
+<span class="nc" id="L171">            repositorio.apoderados</span>
+<span class="nc bnc" id="L172" title="All 2 branches missed.">        ) { talleres, estudiantes, apoderados -&gt;</span>
+
+<span class="nc" id="L174">            DatosReferencia(</span>
+<span class="nc" id="L175">                cursos = estudiantes</span>
+<span class="nc" id="L176">                    .map { it.curso }</span>
+<span class="nc" id="L177">                    .distinct()</span>
+<span class="nc" id="L178">                    .sorted(),</span>
+<span class="nc" id="L179">                talleres = talleres,</span>
+<span class="nc" id="L180">                estudiantes = estudiantes,</span>
+<span class="nc" id="L181">                apoderados = apoderados</span>
+<span class="nc" id="L182">            )</span>
+
+<span class="nc" id="L184">        }.comoEstado(DatosReferencia())</span>
+
+    // Lista observable de comunicados almacenados.
+<span class="nc" id="L187">    val comunicados: StateFlow&lt;List&lt;Comunicacion&gt;&gt; =</span>
+<span class="nc" id="L188">        repositorio.comunicaciones.comoEstado(emptyList())</span>
+
+    // Lista observable del resultado de cada despacho.
+<span class="nc" id="L191">    val envios: StateFlow&lt;List&lt;EnvioDestinatario&gt;&gt; =</span>
+<span class="nc" id="L192">        repositorio.envios.comoEstado(emptyList())</span>
+
+    // Agrupa los resultados de envío por comunicado.
+<span class="nc" id="L195">    val resumenes: StateFlow&lt;Map&lt;String, ResumenEnvio&gt;&gt; =</span>
+<span class="nc bnc" id="L196" title="All 2 branches missed.">        combine(comunicados, envios) { lista, todos -&gt;</span>
+
+<span class="nc" id="L198">            val porComunicado =</span>
+<span class="nc" id="L199">                todos.groupBy { it.comunicacionId }</span>
+
+<span class="nc" id="L201">            lista.associate {</span>
+<span class="nc" id="L202">                it.id to ResumenEnvio.de(</span>
+<span class="nc bnc" id="L203" title="All 2 branches missed.">                    porComunicado[it.id].orEmpty(),</span>
+<span class="nc" id="L204">                    it.requiereFirmaFisica</span>
+<span class="nc" id="L205">                )</span>
+<span class="nc" id="L206">            }</span>
+
+<span class="nc" id="L208">        }.comoEstado(emptyMap())</span>
+
+    // Mensajes breves que puede mostrar la interfaz.
+    private val _mensajes =
+<span class="nc" id="L212">        MutableSharedFlow&lt;String&gt;(extraBufferCapacity = 4)</span>
+
+<span class="nc" id="L214">    val mensajes: SharedFlow&lt;String&gt; =</span>
+<span class="nc" id="L215">        _mensajes.asSharedFlow()</span>
+
+    // =====================================================
+    // MODO LOCAL Y MODO SERVIDOR
+    // =====================================================
+
+    // Indica si la aplicación funciona sin servidor.
+<span class="nc" id="L222">    val modoLocal: StateFlow&lt;Boolean&gt; =</span>
+<span class="nc" id="L223">        preferenciaModo.modoLocal</span>
+
+    /**
+     * Cambia la fuente de datos utilizada por la aplicación.
+     * Si existe una sesión abierta, se cierra.
+     */
+    fun cambiarModo(local: Boolean) {
+
+<span class="nc bnc" id="L231" title="All 2 branches missed.">        if (preferenciaModo.esLocal() == local) return</span>
+
+        // Evita cambiar de modo durante un envío.
+<span class="nc bnc" id="L234" title="All 2 branches missed.">        if (_envioUi.value is EstadoEnvioUi.Enviando) {</span>
+<span class="nc" id="L235">            _mensajes.tryEmit(</span>
+<span class="nc" id="L236">                &quot;Espera a que termine el envío para cambiar de modo&quot;</span>
+            )
+<span class="nc" id="L238">            return</span>
+        }
+
+<span class="nc bnc" id="L241" title="All 2 branches missed.">        if (_usuarioActivo.value != null) {</span>
+<span class="nc" id="L242">            logout()</span>
+        }
+
+<span class="nc" id="L245">        preferenciaModo.cambiar(local)</span>
+
+<span class="nc bnc" id="L247" title="All 2 branches missed.">        if (!local) {</span>
+<span class="nc" id="L248">            _urlServidor.value = direccionActual()</span>
+        }
+
+<span class="nc" id="L251">        _estadoDatos.value = EstadoDatos.Inactivo</span>
+<span class="nc" id="L252">        _sinSesionRemota.value = false</span>
+<span class="nc" id="L253">        _pruebaServidor.value = PruebaServidor.Inactiva</span>
+
+<span class="nc" id="L255">        viewModelScope.launch {</span>
+<span class="nc" id="L256">            repositorio.asegurarDatosIniciales()</span>
+<span class="nc" id="L257">        }</span>
+<span class="nc" id="L258">    }</span>
+
+    // Restablece los datos de ejemplo únicamente en modo local.
+<span class="nc" id="L261">    fun restablecerDatosLocales(</span>
+<span class="nc" id="L262">        alTerminar: (Boolean) -&gt; Unit = {}</span>
+    ) {
+
+<span class="nc bnc" id="L265" title="All 2 branches missed.">        if (!repositorio.esLocal) {</span>
+<span class="nc" id="L266">            alTerminar(false)</span>
+<span class="nc" id="L267">            return</span>
+        }
+
+<span class="nc" id="L270">        viewModelScope.launch {</span>
+
+<span class="nc" id="L272">            val exito = try {</span>
+
+<span class="nc" id="L274">                repositorio.restablecer() is ApiResult.Success</span>
+
+<span class="nc" id="L276">            } catch (e: CancellationException) {</span>
+
+<span class="nc" id="L278">                throw e</span>
+
+<span class="nc" id="L280">            } catch (e: Exception) {</span>
+
+<span class="nc" id="L282">                false</span>
+            }
+
+<span class="nc" id="L285">            _mensajes.tryEmit(</span>
+<span class="nc bnc" id="L286" title="All 2 branches missed.">                if (exito) {</span>
+<span class="nc" id="L287">                    &quot;Datos locales restablecidos&quot;</span>
+                } else {
+<span class="nc" id="L289">                    &quot;No se pudieron restablecer los datos locales&quot;</span>
+                }
+            )
+
+<span class="nc bnc" id="L293" title="All 2 branches missed.">            alTerminar(exito)</span>
+<span class="nc" id="L294">        }</span>
+<span class="nc" id="L295">    }</span>
+
+    // =====================================================
+    // CONFIGURACIÓN DEL SERVIDOR
+    // =====================================================
+
+    // Obtiene la dirección configurada de la API.
+    private fun direccionActual(): String =
+<span class="nc" id="L303">        try {</span>
+<span class="nc" id="L304">            configuracion.urlBase()</span>
+<span class="nc" id="L305">        } catch (e: NotImplementedError) {</span>
+<span class="nc" id="L306">            BuildConfig.API_BASE_URL</span>
+<span class="nc" id="L307">        }</span>
+
+<span class="nc" id="L309">    private val _urlServidor = MutableStateFlow(</span>
+<span class="nc bnc" id="L310" title="All 2 branches missed.">        if (preferenciaModo.esLocal()) {</span>
+<span class="nc" id="L311">            BuildConfig.API_BASE_URL</span>
+        } else {
+<span class="nc" id="L313">            direccionActual()</span>
+        }
+    )
+
+<span class="nc" id="L317">    val urlServidor: StateFlow&lt;String&gt; =</span>
+<span class="nc" id="L318">        _urlServidor.asStateFlow()</span>
+
+    private val _pruebaServidor =
+<span class="nc" id="L321">        MutableStateFlow&lt;PruebaServidor&gt;(</span>
+<span class="nc" id="L322">            PruebaServidor.Inactiva</span>
+        )
+
+<span class="nc" id="L325">    val pruebaServidor: StateFlow&lt;PruebaServidor&gt; =</span>
+<span class="nc" id="L326">        _pruebaServidor.asStateFlow()</span>
+
+    // Comprueba que la dirección del servidor sea válida.
+    fun validarServidor(texto: String): String? =
+<span class="nc" id="L330">        UrlServidor.validar(texto)</span>
+
+    // Guarda la dirección del servidor si es válida.
+    fun guardarServidor(texto: String): String? {
+
+<span class="nc" id="L335">        val error = configuracion.guardar(texto)</span>
+
+<span class="nc bnc" id="L337" title="All 2 branches missed.">        if (error == null) {</span>
+<span class="nc" id="L338">            _urlServidor.value = configuracion.urlBase()</span>
+<span class="nc" id="L339">            _pruebaServidor.value = PruebaServidor.Inactiva</span>
+        }
+
+<span class="nc" id="L342">        return error</span>
+    }
+
+    // Recupera la dirección original del servidor.
+    fun restaurarServidor() {
+<span class="nc" id="L347">        configuracion.restaurar()</span>
+<span class="nc" id="L348">        _urlServidor.value = configuracion.urlBase()</span>
+<span class="nc" id="L349">        _pruebaServidor.value = PruebaServidor.Inactiva</span>
+<span class="nc" id="L350">    }</span>
+
+    // Restablece el estado de la prueba de conexión.
+    fun limpiarPruebaServidor() {
+<span class="nc" id="L354">        _pruebaServidor.value = PruebaServidor.Inactiva</span>
+<span class="nc" id="L355">    }</span>
+
+    // Comprueba la disponibilidad del servidor.
+    fun probarServidor(texto: String) {
+
+<span class="nc bnc" id="L360" title="All 2 branches missed.">        if (_pruebaServidor.value is PruebaServidor.Probando) {</span>
+<span class="nc" id="L361">            return</span>
+        }
+
+<span class="nc" id="L364">        _pruebaServidor.value = PruebaServidor.Probando</span>
+
+<span class="nc" id="L366">        viewModelScope.launch {</span>
+
+<span class="nc" id="L368">            _pruebaServidor.value =</span>
+<span class="nc" id="L369">                when (val resultado = cliente.probarConexion(texto)) {</span>
+
+<span class="nc bnc" id="L371" title="All 2 branches missed.">                    is ApiResult.Success -&gt;</span>
+<span class="nc" id="L372">                        PruebaServidor.Correcta(</span>
+<span class="nc" id="L373">                            &quot;Conexión correcta con el servidor de MPAZ Notifica&quot;</span>
+                        )
+
+<span class="nc bnc" id="L376" title="All 2 branches missed.">                    is ApiResult.SinConexion -&gt;</span>
+<span class="nc" id="L377">                        PruebaServidor.Fallida(</span>
+<span class="nc" id="L378">                            textoSinConexion(resultado)</span>
+                        )
+
+<span class="nc" id="L381">                    is ApiResult.Error -&gt;</span>
+<span class="nc" id="L382">                        PruebaServidor.Fallida(</span>
+<span class="nc" id="L383">                            resultado.mensaje</span>
+                        )
+                }
+<span class="nc" id="L386">        }</span>
+<span class="nc" id="L387">    }</span>
+
+    // =====================================================
+    // SINCRONIZACIÓN DE DATOS
+    // =====================================================
+
+    private val _estadoDatos =
+<span class="nc" id="L394">        MutableStateFlow&lt;EstadoDatos&gt;(EstadoDatos.Inactivo)</span>
+
+<span class="nc" id="L396">    val estadoDatos: StateFlow&lt;EstadoDatos&gt; =</span>
+<span class="nc" id="L397">        _estadoDatos.asStateFlow()</span>
+
+    // Indica si el usuario está en modo remoto sin conexión.
+    private val _sinSesionRemota =
+<span class="nc" id="L401">        MutableStateFlow(false)</span>
+
+<span class="nc" id="L403">    val sinSesionRemota: StateFlow&lt;Boolean&gt; =</span>
+<span class="nc" id="L404">        _sinSesionRemota.asStateFlow()</span>
+
+    private var sincronizando = false
+
+    // Sincroniza los datos remotos con la caché Room.
+    fun sincronizar() {
+
+<span class="nc bnc" id="L411" title="All 4 branches missed.">        if (sincronizando || _usuarioActivo.value == null) {</span>
+<span class="nc" id="L412">            return</span>
+        }
+
+<span class="nc bnc" id="L415" title="All 2 branches missed.">        if (repositorio.esLocal) {</span>
+<span class="nc" id="L416">            _estadoDatos.value = EstadoDatos.Inactivo</span>
+<span class="nc" id="L417">            return</span>
+        }
+
+<span class="nc bnc" id="L420" title="All 2 branches missed.">        if (!sesionApi.activa) {</span>
+<span class="nc" id="L421">            _estadoDatos.value =</span>
+<span class="nc" id="L422">                EstadoDatos.SinConexion(MSG_MODO_SIN_CONEXION)</span>
+
+<span class="nc" id="L424">            return</span>
+        }
+
+<span class="nc" id="L427">        sincronizando = true</span>
+<span class="nc" id="L428">        _estadoDatos.value = EstadoDatos.Cargando</span>
+
+<span class="nc" id="L430">        viewModelScope.launch {</span>
+
+<span class="nc" id="L432">            try {</span>
+
+<span class="nc" id="L434">                when (val resultado = repositorio.sincronizar()) {</span>
+
+<span class="nc bnc" id="L436" title="All 2 branches missed.">                    is ApiResult.Success -&gt; {</span>
+
+<span class="nc" id="L438">                        _estadoDatos.value =</span>
+<span class="nc" id="L439">                            EstadoDatos.Actualizado(</span>
+<span class="nc" id="L440">                                Fechas.legible(Fechas.ahora())</span>
+                            )
+                    }
+
+<span class="nc bnc" id="L444" title="All 2 branches missed.">                    is ApiResult.SinConexion -&gt; {</span>
+
+<span class="nc" id="L446">                        _estadoDatos.value =</span>
+<span class="nc" id="L447">                            EstadoDatos.SinConexion(</span>
+<span class="nc" id="L448">                                textoSinConexion(resultado) +</span>
+                                        &quot; Se muestran los últimos datos guardados.&quot;
+                            )
+                    }
+
+<span class="nc" id="L453">                    is ApiResult.Error -&gt; {</span>
+
+<span class="nc bnc" id="L455" title="All 2 branches missed.">                        if (resultado.causa == CausaError.NO_AUTORIZADO) {</span>
+<span class="nc" id="L456">                            sesionExpirada()</span>
+                        } else {
+<span class="nc" id="L458">                            _estadoDatos.value =</span>
+<span class="nc" id="L459">                                EstadoDatos.Error(resultado.mensaje)</span>
+                        }
+                    }
+                }
+
+            } finally {
+
+<span class="nc" id="L466">                sincronizando = false</span>
+            }
+<span class="nc" id="L468">        }</span>
+<span class="nc" id="L469">    }</span>
+
+    // Cierra la sesión cuando el servidor rechaza el token.
+    private fun sesionExpirada() {
+
+<span class="nc" id="L474">        logout()</span>
+
+<span class="nc" id="L476">        _errorCredenciales.value =</span>
+<span class="nc" id="L477">            &quot;Tu sesión expiró. Ingresa nuevamente.&quot;</span>
+<span class="nc" id="L478">    }</span>
+
+    // =====================================================
+    // AUTENTICACIÓN Y PERFILES (RF-01)
+    // =====================================================
+
+    // Mantiene el usuario conectado a la aplicación.
+    private val _usuarioActivo =
+<span class="nc" id="L486">        MutableStateFlow&lt;Usuario?&gt;(null)</span>
+
+<span class="nc" id="L488">    val usuarioActivo: StateFlow&lt;Usuario?&gt; =</span>
+<span class="nc" id="L489">        _usuarioActivo.asStateFlow()</span>
+
+    // Errores individuales del formulario de login.
+    private val _erroresLogin =
+<span class="nc" id="L493">        MutableStateFlow(ErroresLogin())</span>
+
+<span class="nc" id="L495">    val erroresLogin: StateFlow&lt;ErroresLogin&gt; =</span>
+<span class="nc" id="L496">        _erroresLogin.asStateFlow()</span>
+
+    // Error general de credenciales incorrectas.
+    private val _errorCredenciales =
+<span class="nc" id="L500">        MutableStateFlow&lt;String?&gt;(null)</span>
+
+<span class="nc" id="L502">    val errorCredenciales: StateFlow&lt;String?&gt; =</span>
+<span class="nc" id="L503">        _errorCredenciales.asStateFlow()</span>
+
+    // Controla el indicador de progreso del login.
+    private val _ingresando =
+<span class="nc" id="L507">        MutableStateFlow(false)</span>
+
+<span class="nc" id="L509">    val ingresando: StateFlow&lt;Boolean&gt; =</span>
+<span class="nc" id="L510">        _ingresando.asStateFlow()</span>
+
+    // Limpia los errores del formulario.
+    fun limpiarErroresLogin() {
+
+<span class="nc" id="L515">        _erroresLogin.value = ErroresLogin()</span>
+
+<span class="nc" id="L517">        _errorCredenciales.value = null</span>
+<span class="nc" id="L518">    }</span>
+
+    /**
+     * Valida los campos y comprueba las credenciales.
+     *
+     * Modo local: verifica los usuarios almacenados en Room.
+     * Modo servidor: utiliza la autenticación remota.
+     */
+    fun iniciarSesion(
+        correo: String,
+        clave: String,
+        onExito: () -&gt; Unit
+    ) {
+
+<span class="nc bnc" id="L532" title="All 2 branches missed.">        if (_ingresando.value) return</span>
+
+        // Valida los campos mediante las reglas del dominio.
+<span class="nc" id="L535">        val errores = Credenciales.validar(correo, clave)</span>
+
+<span class="nc" id="L537">        _erroresLogin.value = errores</span>
+<span class="nc" id="L538">        _errorCredenciales.value = null</span>
+
+<span class="nc bnc" id="L540" title="All 2 branches missed.">        if (errores.hayErrores) return</span>
+
+<span class="nc" id="L542">        _ingresando.value = true</span>
+
+<span class="nc" id="L544">        viewModelScope.launch {</span>
+
+<span class="nc" id="L546">            try {</span>
+
+<span class="nc" id="L548">                repositorio.asegurarDatosIniciales()</span>
+
+<span class="nc" id="L550">                val local = repositorio.esLocal</span>
+
+<span class="nc" id="L552">                when (</span>
+<span class="nc" id="L553">                    val resultado =</span>
+<span class="nc" id="L554">                        repositorio.iniciarSesion(correo, clave)</span>
+                ) {
+
+<span class="nc bnc" id="L557" title="All 2 branches missed.">                    is ApiResult.Success -&gt; {</span>
+
+<span class="nc bnc" id="L559" title="All 2 branches missed.">                        if (local) {</span>
+<span class="nc" id="L560">                            sesionApi.cerrar()</span>
+                        } else {
+<span class="nc" id="L562">                            sesionApi.iniciar(</span>
+<span class="nc" id="L563">                                resultado.datos.token</span>
+                            )
+                        }
+
+<span class="nc" id="L567">                        _sinSesionRemota.value = false</span>
+<span class="nc" id="L568">                        _estadoDatos.value = EstadoDatos.Inactivo</span>
+
+                        // Guarda el usuario autenticado.
+<span class="nc" id="L571">                        _usuarioActivo.value =</span>
+<span class="nc" id="L572">                            resultado.datos.usuario</span>
+
+                        // Permite navegar al panel principal.
+<span class="nc" id="L575">                        onExito()</span>
+
+<span class="nc" id="L577">                        sincronizar()</span>
+                    }
+
+<span class="nc bnc" id="L580" title="All 2 branches missed.">                    is ApiResult.Error -&gt; {</span>
+
+<span class="nc" id="L582">                        _errorCredenciales.value =</span>
+                            if (
+<span class="nc bnc" id="L584" title="All 2 branches missed.">                                resultado.causa ==</span>
+<span class="nc" id="L585">                                CausaError.NO_AUTORIZADO</span>
+                            ) {
+<span class="nc" id="L587">                                &quot;Correo o clave incorrectos&quot;</span>
+                            } else {
+<span class="nc" id="L589">                                resultado.mensaje</span>
+                            }
+                    }
+
+<span class="nc" id="L593">                    is ApiResult.SinConexion -&gt; {</span>
+
+<span class="nc" id="L595">                        ingresarSinConexion(</span>
+<span class="nc" id="L596">                            correo,</span>
+<span class="nc" id="L597">                            clave,</span>
+<span class="nc" id="L598">                            textoSinConexion(resultado),</span>
+<span class="nc" id="L599">                            onExito</span>
+                        )
+                    }
+                }
+
+<span class="nc" id="L604">            } catch (e: CancellationException) {</span>
+
+<span class="nc" id="L606">                throw e</span>
+
+<span class="nc" id="L608">            } catch (e: Exception) {</span>
+
+<span class="nc" id="L610">                _errorCredenciales.value =</span>
+<span class="nc bnc" id="L611" title="All 2 branches missed.">                    if (repositorio.esLocal) {</span>
+<span class="nc" id="L612">                        &quot;No se pudo acceder a los datos locales. Intenta nuevamente.&quot;</span>
+                    } else {
+<span class="nc" id="L614">                        &quot;No se pudo iniciar sesión. Intenta nuevamente.&quot;</span>
+                    }
+
+            } finally {
+
+<span class="nc" id="L619">                _ingresando.value = false</span>
+            }
+<span class="nc" id="L621">        }</span>
+<span class="nc" id="L622">    }</span>
+
+    // Permite consultar los datos guardados sin conexión.
+<span class="nc" id="L625">    private suspend fun ingresarSinConexion(</span>
+        correo: String,
+        clave: String,
+        motivo: String,
+        onExito: () -&gt; Unit
+    ) {
+
+<span class="nc" id="L632">        val encontrado = repositorio.buscarUsuario(correo)</span>
+
+        if (
+<span class="nc bnc" id="L635" title="All 2 branches missed.">            encontrado != null &amp;&amp;</span>
+<span class="nc bnc" id="L636" title="All 4 branches missed.">            encontrado.claveHash.isNotEmpty() &amp;&amp;</span>
+<span class="nc bnc" id="L637" title="All 2 branches missed.">            Credenciales.coincide(</span>
+<span class="nc" id="L638">                clave,</span>
+<span class="nc" id="L639">                encontrado.claveHash</span>
+            )
+        ) {
+
+<span class="nc" id="L643">            sesionApi.cerrar()</span>
+
+<span class="nc" id="L645">            _sinSesionRemota.value = true</span>
+
+<span class="nc" id="L647">            _estadoDatos.value =</span>
+<span class="nc" id="L648">                EstadoDatos.SinConexion(MSG_MODO_SIN_CONEXION)</span>
+
+<span class="nc" id="L650">            _usuarioActivo.value = encontrado</span>
+
+<span class="nc" id="L652">            onExito()</span>
+
+        } else {
+
+<span class="nc" id="L656">            _errorCredenciales.value = motivo</span>
+        }
+<span class="nc" id="L658">    }</span>
+
+    // Cierra la sesión y limpia los estados del usuario.
+    fun logout() {
+
+<span class="nc" id="L663">        val token = sesionApi.token</span>
+<span class="nc" id="L664">        val fuente = repositorio.actual()</span>
+
+<span class="nc" id="L666">        sesionApi.cerrar()</span>
+
+<span class="nc bnc" id="L668" title="All 2 branches missed.">        if (token != null) {</span>
+
+<span class="nc" id="L670">            viewModelScope.launch {</span>
+<span class="nc" id="L671">                fuente.cerrarSesion(token)</span>
+<span class="nc" id="L672">            }</span>
+        }
+
+<span class="nc" id="L675">        _sinSesionRemota.value = false</span>
+<span class="nc" id="L676">        _estadoDatos.value = EstadoDatos.Inactivo</span>
+
+<span class="nc" id="L678">        pendienteRegistro = null</span>
+
+<span class="nc" id="L680">        _usuarioActivo.value = null</span>
+
+<span class="nc" id="L682">        limpiarErroresLogin()</span>
+
+<span class="nc" id="L684">        _envioUi.value = EstadoEnvioUi.Inactivo</span>
+
+<span class="nc" id="L686">        _filtros.value = FiltrosHistorial()</span>
+<span class="nc" id="L687">    }</span>
+
+    // =====================================================
+    // REDACCIÓN Y ENVÍO DE COMUNICADOS
+    // RF-02 a RF-08, RF-12, RN-01 y RN-02
+    // =====================================================
+
+    // Obtiene los tipos de comunicado permitidos por perfil.
+    fun tiposPermitidos(
+        usuario: Usuario?
+    ): List&lt;TipoComunicacion&gt; =
+<span class="nc" id="L698">        ReglasComunicado.tiposPermitidos(usuario)</span>
+
+    // Obtiene los alcances permitidos por perfil.
+    fun alcancesPermitidos(
+        usuario: Usuario?
+    ): List&lt;AlcanceEnvio&gt; =
+<span class="nc" id="L704">        ReglasComunicado.alcancesPermitidos(usuario)</span>
+
+    // RF-06: limita los destinos según el usuario y su curso.
+    fun destinosPara(
+        alcance: AlcanceEnvio?,
+        usuario: Usuario?
+    ): List&lt;String&gt; =
+<span class="nc" id="L711">        ReglasComunicado.destinosPara(</span>
+<span class="nc" id="L712">            alcance,</span>
+<span class="nc" id="L713">            usuario,</span>
+<span class="nc" id="L714">            datos.value</span>
+<span class="nc" id="L715">        )</span>
+
+    // Valida el formulario mediante las reglas del dominio.
+    fun validarComunicado(
+        asunto: String,
+        cuerpo: String,
+        tipo: TipoComunicacion?,
+        alcance: AlcanceEnvio?,
+        destino: String?
+    ): ErroresComunicado =
+<span class="nc" id="L725">        ReglasComunicado.validar(</span>
+<span class="nc" id="L726">            asunto,</span>
+<span class="nc" id="L727">            cuerpo,</span>
+<span class="nc" id="L728">            tipo,</span>
+<span class="nc" id="L729">            alcance,</span>
+<span class="nc" id="L730">            destino,</span>
+<span class="nc" id="L731">            _usuarioActivo.value,</span>
+<span class="nc" id="L732">            datos.value</span>
+<span class="nc" id="L733">        )</span>
+
+    // Calcula la cantidad de apoderados destinatarios.
+    fun contarDestinatarios(
+        alcance: AlcanceEnvio?,
+        destino: String?
+    ): Int =
+<span class="nc bnc" id="L740" title="All 2 branches missed.">        if (alcance == null) {</span>
+<span class="nc" id="L741">            0</span>
+        } else {
+<span class="nc" id="L743">            ReglasComunicado.resolverApoderados(</span>
+<span class="nc" id="L744">                alcance,</span>
+<span class="nc" id="L745">                destino,</span>
+<span class="nc" id="L746">                datos.value</span>
+<span class="nc" id="L747">            ).size</span>
+<span class="nc" id="L748">        }</span>
+
+    // Comprueba si falta solicitar el permiso de notificaciones.
+    fun necesitaPermisoNotificaciones(): Boolean =
+<span class="nc bnc" id="L752" title="All 2 branches missed.">        notificador.requierePermiso() &amp;&amp;</span>
+<span class="nc bnc" id="L753" title="All 2 branches missed.">                !notificador.tienePermiso()</span>
+
+    // Estado observable del proceso de envío.
+    private val _envioUi =
+<span class="nc" id="L757">        MutableStateFlow&lt;EstadoEnvioUi&gt;(</span>
+<span class="nc" id="L758">            EstadoEnvioUi.Inactivo</span>
+        )
+
+<span class="nc" id="L761">    val envioUi: StateFlow&lt;EstadoEnvioUi&gt; =</span>
+<span class="nc" id="L762">        _envioUi.asStateFlow()</span>
+
+    // Restablece el formulario después de finalizar un envío.
+    fun reiniciarEnvio() {
+
+<span class="nc bnc" id="L767" title="All 2 branches missed.">        if (_envioUi.value !is EstadoEnvioUi.Enviando) {</span>
+
+<span class="nc" id="L769">            pendienteRegistro = null</span>
+
+<span class="nc" id="L771">            _envioUi.value = EstadoEnvioUi.Inactivo</span>
+        }
+<span class="nc" id="L773">    }</span>
+
+    // Guarda temporalmente un despacho pendiente de registrar.
+<span class="nc" id="L776">    private class PendienteRegistro(</span>
+<span class="nc" id="L777">        val comunicacion: Comunicacion,</span>
+<span class="nc" id="L778">        val destino: String?,</span>
+<span class="nc" id="L779">        val envios: List&lt;EnvioDestinatario&gt;</span>
+    )
+
+    private var pendienteRegistro: PendienteRegistro? = null
+
+    /**
+     * Valida, prepara y envía un comunicado.
+     *
+     * Aplica una segunda validación antes del envío,
+     * evitando depender únicamente de la interfaz.
+     *
+     * En modo local utiliza Room y despacho simulado.
+     * Los comunicados registrados son inmutables.
+     */
+    fun enviarComunicado(
+        solicitud: SolicitudComunicado
+    ) {
+
+        // Evita realizar dos envíos simultáneos.
+<span class="nc bnc" id="L798" title="All 2 branches missed.">        if (_envioUi.value is EstadoEnvioUi.Enviando) {</span>
+<span class="nc" id="L799">            return</span>
+        }
+
+<span class="nc" id="L802">        val autor = _usuarioActivo.value</span>
+
+        // Impide enviar comunicados sin iniciar sesión.
+<span class="nc bnc" id="L805" title="All 2 branches missed.">        if (autor == null) {</span>
+
+<span class="nc" id="L807">            _envioUi.value =</span>
+<span class="nc" id="L808">                EstadoEnvioUi.Error(</span>
+<span class="nc" id="L809">                    ReglasComunicado.MSG_SIN_SESION</span>
+                )
+
+<span class="nc" id="L812">            return</span>
+        }
+
+        // En modo remoto exige una sesión válida.
+<span class="nc bnc" id="L816" title="All 4 branches missed.">        if (!repositorio.esLocal &amp;&amp; !sesionApi.activa) {</span>
+
+<span class="nc" id="L818">            _envioUi.value =</span>
+<span class="nc" id="L819">                EstadoEnvioUi.Error(</span>
+<span class="nc" id="L820">                    MSG_REQUIERE_CONEXION</span>
+                )
+
+<span class="nc" id="L823">            return</span>
+        }
+
+<span class="nc" id="L826">        val datosActuales = datos.value</span>
+
+        // Segunda barrera de validación del RF-06.
+<span class="nc" id="L829">        val errores = ReglasComunicado.validar(</span>
+<span class="nc" id="L830">            solicitud.asunto,</span>
+<span class="nc" id="L831">            solicitud.cuerpo,</span>
+<span class="nc" id="L832">            solicitud.tipo,</span>
+<span class="nc" id="L833">            solicitud.alcance,</span>
+<span class="nc" id="L834">            solicitud.destino,</span>
+<span class="nc" id="L835">            autor,</span>
+<span class="nc" id="L836">            datosActuales</span>
+        )
+
+<span class="nc bnc" id="L839" title="All 2 branches missed.">        if (errores.hayErrores) {</span>
+
+<span class="nc" id="L841">            _envioUi.value =</span>
+<span class="nc" id="L842">                EstadoEnvioUi.Error(</span>
+<span class="nc" id="L843">                    &quot;El comunicado no cumple las reglas de tu perfil. Revisa el formulario.&quot;</span>
+                )
+
+<span class="nc" id="L846">            return</span>
+        }
+
+        // Obtiene los destinatarios y sus canales de envío.
+<span class="nc" id="L850">        val destinatarios = ReglasComunicado</span>
+<span class="nc" id="L851">            .resolverApoderados(</span>
+<span class="nc" id="L852">                solicitud.alcance,</span>
+<span class="nc" id="L853">                solicitud.destino,</span>
+<span class="nc" id="L854">                datosActuales</span>
+            )
+<span class="nc" id="L856">            .map {</span>
+<span class="nc" id="L857">                Destinatario(</span>
+<span class="nc" id="L858">                    it,</span>
+<span class="nc" id="L859">                    ReglasComunicado.canalDe(</span>
+<span class="nc" id="L860">                        it,</span>
+<span class="nc" id="L861">                        solicitud.requiereFirmaFisica</span>
+                    )
+<span class="nc" id="L863">                )</span>
+            }
+
+<span class="nc bnc" id="L866" title="All 2 branches missed.">        if (destinatarios.isEmpty()) {</span>
+
+<span class="nc" id="L868">            _envioUi.value =</span>
+<span class="nc" id="L869">                EstadoEnvioUi.Error(</span>
+<span class="nc" id="L870">                    ReglasComunicado.MSG_SIN_DESTINATARIOS</span>
+                )
+
+<span class="nc" id="L873">            return</span>
+        }
+
+        // Activa el indicador de progreso.
+<span class="nc" id="L877">        _envioUi.value =</span>
+<span class="nc" id="L878">            EstadoEnvioUi.Enviando(</span>
+<span class="nc" id="L879">                0,</span>
+<span class="nc" id="L880">                destinatarios.size</span>
+            )
+
+<span class="nc" id="L883">        viewModelScope.launch {</span>
+
+<span class="nc" id="L885">            try {</span>
+
+                // Genera un identificador único para el comunicado.
+<span class="nc" id="L888">                val comunicacionId =</span>
+<span class="nc" id="L889">                    UUID.randomUUID().toString()</span>
+
+                // Guarda una copia local del PDF adjunto.
+<span class="nc bnc" id="L892" title="All 2 branches missed.">                val nombreAdjunto = solicitud.adjunto?.let {</span>
+
+<span class="nc bnc" id="L894" title="All 2 branches missed.">                    ArchivosPdf.guardarCopia(</span>
+<span class="nc" id="L895">                        getApplication&lt;Application&gt;(),</span>
+<span class="nc" id="L896">                        it,</span>
+<span class="nc" id="L897">                        comunicacionId</span>
+<span class="nc" id="L898">                    ) ?: throw IllegalStateException(</span>
+<span class="nc" id="L899">                        &quot;No se pudo leer el PDF adjunto&quot;</span>
+<span class="nc" id="L900">                    )</span>
+                }
+
+                // Construye el comunicado que será registrado.
+<span class="nc" id="L904">                val comunicacion = Comunicacion(</span>
+<span class="nc" id="L905">                    id = comunicacionId,</span>
+<span class="nc" id="L906">                    asunto = solicitud.asunto.trim(),</span>
+<span class="nc" id="L907">                    cuerpo = ReglasComunicado.cuerpoFinal(</span>
+<span class="nc" id="L908">                        solicitud.cuerpo,</span>
+<span class="nc" id="L909">                        solicitud.requiereFirmaFisica</span>
+                    ),
+<span class="nc" id="L911">                    tipo = solicitud.tipo,</span>
+<span class="nc" id="L912">                    alcance = solicitud.alcance,</span>
+                    destinoReferencia =
+                        if (
+<span class="nc bnc" id="L915" title="All 2 branches missed.">                            solicitud.alcance ==</span>
+<span class="nc" id="L916">                            AlcanceEnvio.COLEGIO_COMPLETO</span>
+                        ) {
+<span class="nc" id="L918">                            null</span>
+                        } else {
+<span class="nc" id="L920">                            solicitud.destino</span>
+                        },
+<span class="nc" id="L922">                    adjuntoPdfNombre = nombreAdjunto,</span>
+                    requiereFirmaFisica =
+<span class="nc" id="L924">                        solicitud.requiereFirmaFisica,</span>
+<span class="nc" id="L925">                    autorId = autor.id,</span>
+<span class="nc" id="L926">                    autorNombre = autor.nombre,</span>
+<span class="nc" id="L927">                    fechaHora = Fechas.ahora()</span>
+                )
+
+                // Despacha y actualiza el progreso por destinatario.
+<span class="nc" id="L931">                val resultados = Despachador(</span>
+<span class="nc" id="L932">                    repositorio.mensajeria()</span>
+<span class="nc" id="L933">                ).despachar(</span>
+<span class="nc" id="L934">                    comunicacion,</span>
+<span class="nc" id="L935">                    destinatarios</span>
+                ) { procesados, total -&gt;
+
+<span class="nc" id="L938">                    _envioUi.value =</span>
+<span class="nc" id="L939">                        EstadoEnvioUi.Enviando(</span>
+<span class="nc" id="L940">                            procesados,</span>
+<span class="nc" id="L941">                            total</span>
+                        )
+<span class="nc" id="L943">                }</span>
+
+                // Guarda el comunicado y los resultados del envío.
+<span class="nc" id="L946">                registrar(</span>
+<span class="nc" id="L947">                    PendienteRegistro(</span>
+<span class="nc" id="L948">                        comunicacion,</span>
+<span class="nc" id="L949">                        solicitud.destino,</span>
+<span class="nc" id="L950">                        resultados</span>
+                    )
+                )
+
+<span class="nc" id="L954">            } catch (e: CancellationException) {</span>
+
+<span class="nc" id="L956">                throw e</span>
+
+<span class="nc" id="L958">            } catch (e: Exception) {</span>
+
+<span class="nc" id="L960">                _envioUi.value =</span>
+<span class="nc" id="L961">                    EstadoEnvioUi.Error(</span>
+<span class="nc bnc" id="L962" title="All 2 branches missed.">                        if (repositorio.esLocal) {</span>
+<span class="nc" id="L963">                            &quot;No se pudo registrar el comunicado. Intenta nuevamente.&quot;</span>
+                        } else {
+<span class="nc" id="L965">                            &quot;No se pudo enviar el comunicado. Intenta nuevamente.&quot;</span>
+                        }
+                    )
+            }
+<span class="nc" id="L969">        }</span>
+<span class="nc" id="L970">    }</span>
+
+    // Reintenta el registro sin volver a despachar los mensajes.
+    fun reintentarRegistro() {
+
+<span class="nc bnc" id="L975" title="All 2 branches missed.">        val pendiente = pendienteRegistro ?: return</span>
+
+<span class="nc bnc" id="L977" title="All 2 branches missed.">        if (_envioUi.value is EstadoEnvioUi.Enviando) {</span>
+<span class="nc" id="L978">            return</span>
+        }
+
+<span class="nc" id="L981">        _envioUi.value =</span>
+<span class="nc" id="L982">            EstadoEnvioUi.Enviando(</span>
+<span class="nc" id="L983">                pendiente.envios.size,</span>
+<span class="nc" id="L984">                pendiente.envios.size</span>
+            )
+
+<span class="nc" id="L987">        viewModelScope.launch {</span>
+
+<span class="nc" id="L989">            try {</span>
+
+<span class="nc" id="L991">                registrar(pendiente)</span>
+
+<span class="nc" id="L993">            } catch (e: CancellationException) {</span>
+
+<span class="nc" id="L995">                throw e</span>
+
+<span class="nc" id="L997">            } catch (e: Exception) {</span>
+
+<span class="nc" id="L999">                _envioUi.value =</span>
+<span class="nc" id="L1000">                    EstadoEnvioUi.Error(</span>
+<span class="nc" id="L1001">                        &quot;No se pudo registrar el comunicado. Intenta nuevamente.&quot;,</span>
+<span class="nc" id="L1002">                        puedeReintentar = true</span>
+                    )
+            }
+<span class="nc" id="L1005">        }</span>
+<span class="nc" id="L1006">    }</span>
+
+    // =====================================================
+    // REGISTRO Y NOTIFICACIÓN DEL COMUNICADO
+    // =====================================================
+
+<span class="nc" id="L1012">    private suspend fun registrar(</span>
+        pendiente: PendienteRegistro
+    ) {
+
+<span class="nc" id="L1016">        val comunicacion = pendiente.comunicacion</span>
+
+        // Registra el comunicado mediante el repositorio.
+<span class="nc" id="L1019">        when (</span>
+<span class="nc" id="L1020">            val resultado = repositorio.registrarEnvio(</span>
+<span class="nc" id="L1021">                comunicacion,</span>
+<span class="nc" id="L1022">                pendiente.destino,</span>
+<span class="nc" id="L1023">                pendiente.envios</span>
+            )
+        ) {
+
+<span class="nc bnc" id="L1027" title="All 2 branches missed.">            is ApiResult.Success -&gt; {</span>
+
+                // El registro se completó correctamente.
+<span class="nc" id="L1030">                pendienteRegistro = null</span>
+
+<span class="nc" id="L1032">                val registrada = resultado.datos</span>
+
+                // Informa a la interfaz que finalizó el envío.
+<span class="nc" id="L1035">                _envioUi.value =</span>
+<span class="nc" id="L1036">                    EstadoEnvioUi.Listo(registrada.resumen)</span>
+
+                // EV3: entrega el ID del comunicado al notificador.
+                // Permite abrir su detalle al tocar la notificación.
+<span class="nc" id="L1040">                notificador.notificarEnvio(</span>
+<span class="nc" id="L1041">                    comunicadoId = registrada.comunicacion.id,</span>
+<span class="nc" id="L1042">                    asunto = registrada.comunicacion.asunto,</span>
+<span class="nc" id="L1043">                    resumen = registrada.resumen</span>
+                )
+            }
+
+<span class="nc bnc" id="L1047" title="All 2 branches missed.">            is ApiResult.SinConexion -&gt; {</span>
+
+                // Conserva el despacho para reintentar su registro.
+<span class="nc" id="L1050">                pendienteRegistro = pendiente</span>
+
+<span class="nc" id="L1052">                _envioUi.value =</span>
+<span class="nc" id="L1053">                    EstadoEnvioUi.Error(</span>
+                        &quot;Los mensajes se despacharon, pero no se pudo registrar el comunicado en el servidor: &quot; +
+<span class="nc" id="L1055">                                textoSinConexion(resultado) +</span>
+                                &quot; Pulsa Reintentar para registrarlo.&quot;,
+<span class="nc" id="L1057">                        puedeReintentar = true</span>
+                    )
+            }
+
+<span class="nc" id="L1061">            is ApiResult.Error -&gt; when {</span>
+
+<span class="nc bnc" id="L1063" title="All 2 branches missed.">                resultado.causa ==</span>
+<span class="nc" id="L1064">                        CausaError.NO_AUTORIZADO -&gt; {</span>
+
+<span class="nc" id="L1066">                    pendienteRegistro = null</span>
+
+<span class="nc" id="L1068">                    sesionExpirada()</span>
+                }
+
+                // Evita duplicar un comunicado ya registrado.
+<span class="nc bnc" id="L1072" title="All 2 branches missed.">                resultado.causa == CausaError.CONFLICTO &amp;&amp;</span>
+<span class="nc bnc" id="L1073" title="All 2 branches missed.">                        resultado.campo == &quot;id&quot; -&gt; {</span>
+
+<span class="nc" id="L1075">                    pendienteRegistro = null</span>
+
+<span class="nc" id="L1077">                    val resumen = ResumenEnvio.de(</span>
+<span class="nc" id="L1078">                        pendiente.envios,</span>
+<span class="nc" id="L1079">                        comunicacion.requiereFirmaFisica</span>
+                    )
+
+<span class="nc" id="L1082">                    _envioUi.value =</span>
+<span class="nc" id="L1083">                        EstadoEnvioUi.Listo(resumen)</span>
+
+<span class="nc" id="L1085">                    sincronizar()</span>
+                }
+
+                else -&gt; {
+
+<span class="nc" id="L1090">                    pendienteRegistro = null</span>
+
+<span class="nc" id="L1092">                    _envioUi.value =</span>
+<span class="nc" id="L1093">                        EstadoEnvioUi.Error(</span>
+<span class="nc" id="L1094">                            resultado.mensaje</span>
+                        )
+                }
+            }
+        }
+<span class="nc" id="L1099">    }</span>
+
+    // =====================================================
+    // HISTORIAL Y TRAZABILIDAD
+    // RF-09, RF-10 y RF-11
+    // =====================================================
+
+    // Almacena los filtros seleccionados por el usuario.
+    private val _filtros =
+<span class="nc" id="L1108">        MutableStateFlow(FiltrosHistorial())</span>
+
+<span class="nc" id="L1110">    val filtros: StateFlow&lt;FiltrosHistorial&gt; =</span>
+<span class="nc" id="L1111">        _filtros.asStateFlow()</span>
+
+    // Aplica los filtros mediante las reglas del dominio.
+    // El ViewModel no contiene la lógica interna del filtrado.
+<span class="nc" id="L1115">    val historial: StateFlow&lt;List&lt;Comunicacion&gt;&gt; =</span>
+<span class="nc bnc" id="L1116" title="All 2 branches missed.">        combine(comunicados, _filtros) { lista, filtros -&gt;</span>
+
+<span class="nc" id="L1118">            ReglasHistorial.aplicar(</span>
+<span class="nc" id="L1119">                lista,</span>
+<span class="nc" id="L1120">                filtros</span>
+<span class="nc" id="L1121">            )</span>
+
+<span class="nc" id="L1123">        }.comoEstado(emptyList())</span>
+
+    // Valida el rango de fechas mediante ReglasHistorial.
+<span class="nc" id="L1126">    val errorFechas: StateFlow&lt;String?&gt; =</span>
+<span class="nc" id="L1127">        _filtros.map {</span>
+
+            ReglasHistorial.errorFechas(
+                it.desde,
+                it.hasta
+            )
+
+<span class="nc" id="L1134">        }.comoEstado(null)</span>
+
+    // Actualiza el filtro por tipo de comunicado.
+    fun filtrarPorTipo(tipo: TipoComunicacion?) {
+
+<span class="nc" id="L1139">        _filtros.value =</span>
+<span class="nc" id="L1140">            _filtros.value.copy(tipo = tipo)</span>
+<span class="nc" id="L1141">    }</span>
+
+    // Actualiza el filtro por usuario emisor.
+    fun filtrarPorEmisor(emisorId: String?) {
+
+<span class="nc" id="L1146">        _filtros.value =</span>
+<span class="nc" id="L1147">            _filtros.value.copy(emisorId = emisorId)</span>
+<span class="nc" id="L1148">    }</span>
+
+    // Actualiza la fecha inicial del historial.
+    fun filtrarDesde(fecha: String?) {
+
+<span class="nc" id="L1153">        _filtros.value =</span>
+<span class="nc" id="L1154">            _filtros.value.copy(desde = fecha)</span>
+<span class="nc" id="L1155">    }</span>
+
+    // Actualiza la fecha final del historial.
+    fun filtrarHasta(fecha: String?) {
+
+<span class="nc" id="L1160">        _filtros.value =</span>
+<span class="nc" id="L1161">            _filtros.value.copy(hasta = fecha)</span>
+<span class="nc" id="L1162">    }</span>
+
+    // Elimina todos los filtros aplicados.
+    fun limpiarFiltros() {
+
+<span class="nc" id="L1167">        _filtros.value = FiltrosHistorial()</span>
+<span class="nc" id="L1168">    }</span>
+
+    // Busca un comunicado mediante su identificador.
+    // Se utiliza para mostrar el detalle correspondiente.
+    fun comunicadoPorId(id: String?): Comunicacion? =
+
+<span class="nc bnc" id="L1174" title="All 4 branches missed.">        comunicados.value.find { it.id == id }</span>
+
+    // =====================================================
+    // CANAL PREFERENTE DEL APODERADO (RF-13)
+    // =====================================================
+
+    // Comprueba si el perfil puede modificar canales.
+    fun puedeConfigurarCanal(
+        usuario: Usuario?
+    ): Boolean =
+
+<span class="nc" id="L1185">        ReglasComunicado.puedeConfigurarCanal(usuario)</span>
+
+    // Obtiene los apoderados visibles para cada perfil.
+    fun apoderadosVisibles(
+        usuario: Usuario?
+    ): List&lt;Apoderado&gt; =
+
+<span class="nc" id="L1192">        ReglasComunicado.apoderadosVisibles(</span>
+<span class="nc" id="L1193">            usuario,</span>
+<span class="nc" id="L1194">            datos.value</span>
+<span class="nc" id="L1195">        )</span>
+
+    /**
+     * Actualiza el canal preferente de un apoderado.
+     *
+     * Solo Inspectoría puede realizar esta modificación.
+     * Comprueba que exista un dato de contacto válido.
+     * El cambio se conserva mediante el repositorio.
+     */
+    fun actualizarCanalPreferente(
+        apoderadoId: String,
+        canal: CanalDespacho
+    ) {
+
+        // Comprueba los permisos del usuario.
+<span class="nc bnc" id="L1210" title="All 2 branches missed.">        if (!puedeConfigurarCanal(_usuarioActivo.value)) {</span>
+
+<span class="nc" id="L1212">            _mensajes.tryEmit(</span>
+<span class="nc" id="L1213">                &quot;Solo Inspectoría General puede cambiar el canal preferente&quot;</span>
+            )
+
+<span class="nc" id="L1216">            return</span>
+        }
+
+<span class="nc" id="L1219">        val apoderado =</span>
+<span class="nc" id="L1220">            datos.value.apoderadoPorId(apoderadoId)</span>
+
+<span class="nc bnc" id="L1222" title="All 2 branches missed.">        if (apoderado == null) {</span>
+
+<span class="nc" id="L1224">            _mensajes.tryEmit(</span>
+<span class="nc" id="L1225">                &quot;El apoderado no existe&quot;</span>
+            )
+
+<span class="nc" id="L1228">            return</span>
+        }
+
+        // Valida el dato de contacto requerido por el canal.
+<span class="nc bnc" id="L1232" title="All 2 branches missed.">        if (!ValidadorContacto.valido(apoderado, canal)) {</span>
+
+<span class="nc" id="L1234">            _mensajes.tryEmit(</span>
+<span class="nc" id="L1235">                &quot;${apoderado.nombreCompleto} no tiene un dato válido para ${canal.etiqueta}&quot;</span>
+            )
+
+<span class="nc" id="L1238">            return</span>
+        }
+
+<span class="nc bnc" id="L1241" title="All 4 branches missed.">        if (!repositorio.esLocal &amp;&amp; !sesionApi.activa) {</span>
+
+<span class="nc" id="L1243">            _mensajes.tryEmit(</span>
+<span class="nc" id="L1244">                MSG_REQUIERE_CONEXION</span>
+            )
+
+<span class="nc" id="L1247">            return</span>
+        }
+
+<span class="nc" id="L1250">        val actor = _usuarioActivo.value</span>
+
+<span class="nc" id="L1252">        viewModelScope.launch {</span>
+
+<span class="nc" id="L1254">            try {</span>
+
+                // Guarda el nuevo canal mediante el repositorio.
+<span class="nc" id="L1257">                when (</span>
+<span class="nc" id="L1258">                    val resultado =</span>
+<span class="nc" id="L1259">                        repositorio.actualizarCanalPreferente(</span>
+<span class="nc" id="L1260">                            actor,</span>
+<span class="nc" id="L1261">                            apoderadoId,</span>
+<span class="nc" id="L1262">                            canal</span>
+                        )
+                ) {
+
+<span class="nc bnc" id="L1266" title="All 2 branches missed.">                    is ApiResult.Success -&gt; {</span>
+
+<span class="nc" id="L1268">                        _mensajes.tryEmit(</span>
+<span class="nc" id="L1269">                            &quot;Canal preferente de ${apoderado.nombreCompleto}: ${canal.etiqueta}&quot;</span>
+                        )
+                    }
+
+<span class="nc bnc" id="L1273" title="All 2 branches missed.">                    is ApiResult.SinConexion -&gt; {</span>
+
+<span class="nc" id="L1275">                        _mensajes.tryEmit(</span>
+<span class="nc" id="L1276">                            textoSinConexion(resultado)</span>
+                        )
+                    }
+
+<span class="nc" id="L1280">                    is ApiResult.Error -&gt; {</span>
+
+                        if (
+<span class="nc bnc" id="L1283" title="All 2 branches missed.">                            resultado.causa ==</span>
+<span class="nc" id="L1284">                            CausaError.NO_AUTORIZADO</span>
+                        ) {
+
+<span class="nc" id="L1287">                            sesionExpirada()</span>
+
+                        } else {
+
+<span class="nc" id="L1291">                            _mensajes.tryEmit(</span>
+<span class="nc" id="L1292">                                resultado.mensaje</span>
+                            )
+                        }
+                    }
+                }
+
+<span class="nc" id="L1298">            } catch (e: CancellationException) {</span>
+
+<span class="nc" id="L1300">                throw e</span>
+
+<span class="nc" id="L1302">            } catch (e: Exception) {</span>
+
+<span class="nc" id="L1304">                _mensajes.tryEmit(</span>
+<span class="nc" id="L1305">                    &quot;No se pudo guardar el canal&quot;</span>
+                )
+            }
+<span class="nc" id="L1308">        }</span>
+<span class="nc" id="L1309">    }</span>
+
+    // =====================================================
+    // MENSAJES GENERALES
+    // =====================================================
+
+    private companion object {
+
+        const val MSG_MODO_SIN_CONEXION =
+            &quot;Sin conexión con el servidor: se muestran los datos guardados en el dispositivo. &quot; +
+                    &quot;Para enviar comunicados o actualizar, cierra sesión e ingresa nuevamente con conexión.&quot;
+
+        const val MSG_REQUIERE_CONEXION =
+            &quot;Esta acción necesita conexión con el servidor. Cierra sesión e ingresa nuevamente cuando la tengas.&quot;
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

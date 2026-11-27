@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ValidadorContacto.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.domain</a> &gt; <span class="el_source">ValidadorContacto.kt</span></div><h1>ValidadorContacto.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.domain
+
+import com.mpaznotifica.app.model.Apoderado
+import com.mpaznotifica.app.model.CanalDespacho
+
+/**
+ * Validación del dato de contacto que exige cada canal. La usan el servicio de mensajería
+ * simulado (para decidir DESPACHADO/FALLIDO) y la configuración del canal preferente (RF-13).
+ */
+object ValidadorContacto {
+
+<span class="fc" id="L12">    private val regexCorreo = Regex(&quot;&quot;&quot;^[\w.+-]+@[\w-]+(\.[\w-]+)+$&quot;&quot;&quot;)</span>
+
+    /** Celular chileno en formato internacional: +56 9 y ocho dígitos. */
+<span class="fc" id="L15">    private val regexTelefono = Regex(&quot;&quot;&quot;^\+569\d{8}$&quot;&quot;&quot;)</span>
+
+<span class="fc" id="L17">    fun correoValido(correo: String): Boolean = regexCorreo.matches(correo.trim())</span>
+
+<span class="fc" id="L19">    fun telefonoValido(telefono: String): Boolean = regexTelefono.matches(telefono.trim())</span>
+
+    /** El correo sirve al canal EMAIL; el teléfono, a SMS y WHATSAPP. */
+<span class="fc bfc" id="L22" title="All 2 branches covered.">    fun contactoValido(canal: CanalDespacho, contacto: String): Boolean = when (canal) {</span>
+<span class="fc" id="L23">        CanalDespacho.EMAIL -&gt; correoValido(contacto)</span>
+<span class="fc" id="L24">        CanalDespacho.SMS, CanalDespacho.WHATSAPP -&gt; telefonoValido(contacto)</span>
+<span class="fc" id="L25">    }</span>
+
+<span class="fc bfc" id="L27" title="All 2 branches covered.">    fun contactoDe(apoderado: Apoderado, canal: CanalDespacho): String = when (canal) {</span>
+<span class="fc" id="L28">        CanalDespacho.EMAIL -&gt; apoderado.correo</span>
+<span class="fc" id="L29">        CanalDespacho.SMS, CanalDespacho.WHATSAPP -&gt; apoderado.telefono</span>
+<span class="fc" id="L30">    }</span>
+
+    fun valido(apoderado: Apoderado, canal: CanalDespacho): Boolean =
+<span class="fc" id="L33">        contactoValido(canal, contactoDe(apoderado, canal))</span>
+
+    /** Canales por los que se puede contactar al apoderado con los datos que tiene. */
+    fun canalesDisponibles(apoderado: Apoderado): List&lt;CanalDespacho&gt; =
+<span class="fc" id="L37">        CanalDespacho.entries.filter { valido(apoderado, it) }</span>
+
+<span class="pc bpc" id="L39" title="1 of 2 branches missed.">    fun motivoInvalido(canal: CanalDespacho): String = when (canal) {</span>
+<span class="nc" id="L40">        CanalDespacho.EMAIL -&gt; &quot;Correo electrónico inválido o ausente&quot;</span>
+<span class="fc" id="L41">        CanalDespacho.SMS, CanalDespacho.WHATSAPP -&gt; &quot;Teléfono inválido o ausente para ${canal.etiqueta}&quot;</span>
+<span class="fc" id="L42">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PreferenciasModo.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.data.repository</a> &gt; <span class="el_source">PreferenciasModo.kt</span></div><h1>PreferenciasModo.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.data.repository
+
+import android.content.Context
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
+/**
+ * [PreferenciaModo] en SharedPreferences (el mismo archivo privado donde se guarda la dirección
+ * del servidor). Mientras el usuario no elija, vale [inicialLocal]; desde que usa el interruptor,
+ * vale lo que eligió (salvo que cambie el valor inicial de compilación, ver [ResolucionModo]).
+ * [esLocal] lee la preferencia en cada llamada.
+ */
+<span class="fc" id="L14">class PreferenciasModo(contexto: Context, private val inicialLocal: Boolean) : PreferenciaModo {</span>
+
+    private val preferencias =
+<span class="fc" id="L17">        contexto.applicationContext.getSharedPreferences(&quot;mpaz_servidor&quot;, Context.MODE_PRIVATE)</span>
+
+<span class="fc" id="L19">    private val estado = MutableStateFlow(esLocal())</span>
+
+<span class="fc" id="L21">    override val modoLocal: StateFlow&lt;Boolean&gt; = estado.asStateFlow()</span>
+
+    override fun esLocal(): Boolean =
+<span class="fc" id="L24">        ResolucionModo.esLocal(</span>
+<span class="fc bfc" id="L25" title="All 2 branches covered.">            guardado = if (preferencias.contains(CLAVE)) preferencias.getBoolean(CLAVE, inicialLocal) else null,</span>
+<span class="fc bfc" id="L26" title="All 2 branches covered.">            inicialGuardado = if (preferencias.contains(CLAVE_INICIAL)) preferencias.getBoolean(CLAVE_INICIAL, inicialLocal) else null,</span>
+<span class="fc" id="L27">            inicialLocal = inicialLocal</span>
+<span class="fc" id="L28">        )</span>
+
+    override fun cambiar(local: Boolean) {
+<span class="fc" id="L31">        preferencias.edit().putBoolean(CLAVE, local).putBoolean(CLAVE_INICIAL, inicialLocal).apply()</span>
+<span class="fc" id="L32">        estado.value = local</span>
+<span class="fc" id="L33">    }</span>
+
+    private companion object {
+        const val CLAVE = &quot;modo_local&quot;
+        const val CLAVE_INICIAL = &quot;modo_local_inicial&quot;
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

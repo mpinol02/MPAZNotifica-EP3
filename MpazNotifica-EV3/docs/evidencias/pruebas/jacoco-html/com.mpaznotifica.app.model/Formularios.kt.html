@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Formularios.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.model</a> &gt; <span class="el_source">Formularios.kt</span></div><h1>Formularios.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.model
+
+/** Errores de validación del formulario de redacción, uno por campo (null = campo válido). */
+<span class="fc" id="L4">data class ErroresComunicado(</span>
+<span class="pc" id="L5">    val asunto: String? = null,</span>
+<span class="pc" id="L6">    val cuerpo: String? = null,</span>
+<span class="fc" id="L7">    val tipo: String? = null,</span>
+<span class="pc" id="L8">    val alcance: String? = null,</span>
+<span class="fc" id="L9">    val destino: String? = null</span>
+<span class="fc" id="L10">) {</span>
+    val hayErrores: Boolean
+<span class="fc bfc" id="L12" title="All 2 branches covered.">        get() = listOf(asunto, cuerpo, tipo, alcance, destino).any { it != null }</span>
+}
+
+/** Errores de validación del inicio de sesión, uno por campo (null = campo válido). */
+<span class="pc" id="L16">data class ErroresLogin(</span>
+<span class="pc" id="L17">    val usuario: String? = null,</span>
+<span class="pc" id="L18">    val clave: String? = null</span>
+<span class="nc" id="L19">) {</span>
+    val hayErrores: Boolean
+<span class="pc bpc" id="L21" title="1 of 4 branches missed.">        get() = usuario != null || clave != null</span>
+}
+
+/** PDF elegido con el selector de archivos del sistema, aún sin copiar al almacenamiento de la app. */
+<span class="nc" id="L25">data class AdjuntoPdf(</span>
+<span class="nc" id="L26">    val nombre: String,</span>
+<span class="nc" id="L27">    val tamanoBytes: Long,</span>
+<span class="nc" id="L28">    val uri: String</span>
+)
+
+/** Datos que el formulario de redacción entrega al ViewModel para emitir un comunicado. */
+<span class="nc" id="L32">data class SolicitudComunicado(</span>
+<span class="nc" id="L33">    val asunto: String,</span>
+<span class="nc" id="L34">    val cuerpo: String,</span>
+<span class="nc" id="L35">    val tipo: TipoComunicacion,</span>
+<span class="nc" id="L36">    val alcance: AlcanceEnvio,</span>
+<span class="nc" id="L37">    val destino: String?,</span>
+<span class="nc" id="L38">    val adjunto: AdjuntoPdf?,</span>
+<span class="nc" id="L39">    val requiereFirmaFisica: Boolean</span>
+)
+
+/** Conteo de resultados de un envío. */
+<span class="pc" id="L43">data class ResumenEnvio(</span>
+<span class="fc" id="L44">    val despachados: Int,</span>
+<span class="fc" id="L45">    val fallidos: Int,</span>
+<span class="pc" id="L46">    val requiereFirmaFisica: Boolean = false</span>
+<span class="nc" id="L47">) {</span>
+    val total: Int
+<span class="fc" id="L49">        get() = despachados + fallidos</span>
+
+    companion object {
+<span class="pc" id="L52">        fun de(envios: List&lt;EnvioDestinatario&gt;, requiereFirmaFisica: Boolean = false) = ResumenEnvio(</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">            despachados = envios.count { it.estado == EstadoEnvio.DESPACHADO },</span>
+<span class="fc bfc" id="L54" title="All 2 branches covered.">            fallidos = envios.count { it.estado == EstadoEnvio.FALLIDO },</span>
+<span class="fc" id="L55">            requiereFirmaFisica = requiereFirmaFisica</span>
+<span class="fc" id="L56">        )</span>
+    }
+}
+
+/** Estado del envío en curso, para el progreso y la alerta visual de confirmación (RNF-01). */
+sealed interface EstadoEnvioUi {
+    data object Inactivo : EstadoEnvioUi
+<span class="nc" id="L63">    data class Enviando(val procesados: Int, val total: Int) : EstadoEnvioUi</span>
+<span class="nc" id="L64">    data class Listo(val resumen: ResumenEnvio) : EstadoEnvioUi</span>
+    /** [puedeReintentar]: el comunicado ya se despachó y solo falta registrarlo en el servidor. */
+<span class="nc" id="L66">    data class Error(val mensaje: String, val puedeReintentar: Boolean = false) : EstadoEnvioUi</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

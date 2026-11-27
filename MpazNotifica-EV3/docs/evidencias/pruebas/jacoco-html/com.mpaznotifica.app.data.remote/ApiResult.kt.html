@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ApiResult.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.data.remote</a> &gt; <span class="el_source">ApiResult.kt</span></div><h1>ApiResult.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.data.remote
+
+/** Causa de un error devuelto por el servidor o por la lectura de su respuesta. */
+enum class CausaError {
+    /** 400 / 422: datos o regla de negocio rechazados por el servidor. */
+<span class="fc" id="L6">    VALIDACION,</span>
+<span class="fc" id="L7">    NO_AUTORIZADO,</span>
+<span class="fc" id="L8">    PROHIBIDO,</span>
+<span class="fc" id="L9">    NO_ENCONTRADO,</span>
+<span class="fc" id="L10">    CONFLICTO,</span>
+<span class="fc" id="L11">    SERVIDOR,</span>
+<span class="fc" id="L12">    RESPUESTA_INVALIDA,</span>
+<span class="fc" id="L13">    LOCAL,</span>
+<span class="fc" id="L14">    DESCONOCIDA</span>
+<span class="nc" id="L15">}</span>
+
+/** Resultado de una llamada a la API, sin excepciones hacia la interfaz. */
+sealed interface ApiResult&lt;out T&gt; {
+
+<span class="fc" id="L20">    data class Success&lt;out T&gt;(val datos: T) : ApiResult&lt;T&gt;</span>
+
+    /** El servidor respondió, pero con un error. [campo] es el campo del formulario afectado, si lo hay. */
+<span class="fc" id="L23">    data class Error(</span>
+<span class="fc" id="L24">        val mensaje: String,</span>
+<span class="fc" id="L25">        val causa: CausaError,</span>
+<span class="pc" id="L26">        val codigo: Int? = null,</span>
+<span class="fc" id="L27">        val campo: String? = null</span>
+<span class="fc" id="L28">    ) : ApiResult&lt;Nothing&gt;</span>
+
+    /** No hubo respuesta: sin red, servidor apagado o tiempo agotado. */
+<span class="nc" id="L31">    data class SinConexion(</span>
+<span class="nc" id="L32">        val mensaje: String = MENSAJE_SIN_CONEXION,</span>
+<span class="nc" id="L33">        val tiempoAgotado: Boolean = false</span>
+<span class="nc" id="L34">    ) : ApiResult&lt;Nothing&gt;</span>
+
+    companion object {
+        const val MENSAJE_SIN_CONEXION = &quot;No se pudo conectar con el servidor. Revisa tu conexión y la dirección del servidor.&quot;
+        const val MENSAJE_TIEMPO_AGOTADO = &quot;El servidor tardó demasiado en responder. Intenta nuevamente.&quot;
+    }
+}
+
+<span class="nc" id="L42">val &lt;T&gt; ApiResult&lt;T&gt;.esExito: Boolean get() = this is ApiResult.Success</span>
+
+/** Mensaje para mostrar al usuario cuando el resultado no fue exitoso (null si lo fue). */
+val ApiResult&lt;*&gt;.mensajeDeError: String?
+<span class="nc" id="L46">    get() = when (this) {</span>
+<span class="nc bnc" id="L47" title="All 2 branches missed.">        is ApiResult.Success -&gt; null</span>
+<span class="nc bnc" id="L48" title="All 2 branches missed.">        is ApiResult.Error -&gt; mensaje</span>
+<span class="nc" id="L49">        is ApiResult.SinConexion -&gt; mensaje</span>
+<span class="nc" id="L50">    }</span>
+
+/** Transforma el dato de un resultado exitoso; los errores pasan sin cambios. */
+<span class="nc" id="L53">inline fun &lt;T, R&gt; ApiResult&lt;T&gt;.mapear(transformar: (T) -&gt; R): ApiResult&lt;R&gt; = when (this) {</span>
+<span class="nc bnc" id="L54" title="All 2 branches missed.">    is ApiResult.Success -&gt; ApiResult.Success(transformar(datos))</span>
+<span class="nc bnc" id="L55" title="All 2 branches missed.">    is ApiResult.Error -&gt; this</span>
+<span class="nc" id="L56">    is ApiResult.SinConexion -&gt; this</span>
+<span class="nc" id="L57">}</span>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

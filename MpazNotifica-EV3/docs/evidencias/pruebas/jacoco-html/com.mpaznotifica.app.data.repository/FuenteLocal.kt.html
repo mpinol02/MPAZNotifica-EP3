@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FuenteLocal.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.data.repository</a> &gt; <span class="el_source">FuenteLocal.kt</span></div><h1>FuenteLocal.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.data.repository
+
+import com.mpaznotifica.app.data.remote.ApiResult
+import com.mpaznotifica.app.data.remote.CausaError
+import com.mpaznotifica.app.data.remote.ComunicacionRegistrada
+import com.mpaznotifica.app.data.remote.MensajeriaApi
+import com.mpaznotifica.app.data.remote.MensajeriaSimulada
+import com.mpaznotifica.app.data.remote.SesionRemota
+import com.mpaznotifica.app.domain.Credenciales
+import com.mpaznotifica.app.domain.DatosReferencia
+import com.mpaznotifica.app.domain.ReglasComunicado
+import com.mpaznotifica.app.domain.ValidadorContacto
+import com.mpaznotifica.app.model.Apoderado
+import com.mpaznotifica.app.model.CanalDespacho
+import com.mpaznotifica.app.model.Comunicacion
+import com.mpaznotifica.app.model.EnvioDestinatario
+import com.mpaznotifica.app.model.ErroresComunicado
+import com.mpaznotifica.app.model.ResumenEnvio
+import com.mpaznotifica.app.model.Usuario
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+
+/**
+ * MODO LOCAL: opera solo con Room ([AlmacenLocal]), sin servidor ni red. No duplica reglas: usa las
+ * funciones puras del dominio ([ReglasComunicado], [ValidadorContacto], [Credenciales]) que también
+ * usa la pantalla, y aplica los mismos rechazos que el servidor (perfil, destino, canal, duplicado),
+ * porque la pantalla no es la única barrera.
+ *
+ * Los datos locales son independientes de los del servidor: lo que se crea aquí no se sincroniza
+ * al volver al modo servidor.
+ */
+<span class="fc" id="L33">class FuenteLocal(</span>
+<span class="fc" id="L34">    private val almacen: AlmacenLocal,</span>
+<span class="fc" id="L35">    private val mensajeriaLocal: MensajeriaApi = MensajeriaSimulada()</span>
+<span class="fc" id="L36">) : FuenteDatos {</span>
+
+<span class="fc" id="L38">    override val esLocal: Boolean = true</span>
+
+<span class="fc" id="L40">    override val usuarios: Flow&lt;List&lt;Usuario&gt;&gt; get() = almacen.usuarios</span>
+<span class="fc" id="L41">    override val talleres get() = almacen.talleres</span>
+<span class="fc" id="L42">    override val estudiantes get() = almacen.estudiantes</span>
+<span class="fc" id="L43">    override val apoderados get() = almacen.apoderados</span>
+<span class="fc" id="L44">    override val comunicaciones get() = almacen.comunicaciones</span>
+<span class="fc" id="L45">    override val envios get() = almacen.envios</span>
+
+<span class="fc" id="L47">    override fun mensajeria(): MensajeriaApi = mensajeriaLocal</span>
+
+<span class="fc" id="L49">    override suspend fun asegurarDatosIniciales() = almacen.asegurarDatosIniciales()</span>
+
+<span class="fc" id="L51">    override suspend fun buscarUsuario(correo: String): Usuario? = almacen.buscarUsuario(correo)</span>
+
+    // ---------------------------------------------------------------- RF-01
+
+<span class="fc" id="L55">    override suspend fun iniciarSesion(usuario: String, clave: String): ApiResult&lt;SesionRemota&gt; {</span>
+<span class="fc" id="L56">        val encontrado = almacen.buscarUsuario(usuario.trim())</span>
+<span class="fc bfc" id="L57" title="All 6 branches covered.">        return if (encontrado != null &amp;&amp; encontrado.claveHash.isNotEmpty() &amp;&amp;</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">            Credenciales.coincide(clave, encontrado.claveHash)</span>
+        ) {
+<span class="fc" id="L60">            ApiResult.Success(SesionRemota(encontrado, TOKEN_LOCAL))</span>
+        } else {
+<span class="fc" id="L62">            ApiResult.Error(&quot;Correo o clave incorrectos&quot;, CausaError.NO_AUTORIZADO, 401)</span>
+        }
+    }
+
+<span class="fc" id="L66">    override suspend fun cerrarSesion(token: String) = Unit</span>
+
+<span class="fc" id="L68">    override suspend fun sincronizar(): ApiResult&lt;Unit&gt; = ApiResult.Success(Unit)</span>
+
+    // ---------------------------------------------------------------- RF-03 a RF-12
+
+<span class="fc" id="L72">    override suspend fun registrarEnvio(</span>
+        comunicacion: Comunicacion,
+        destino: String?,
+        envios: List&lt;EnvioDestinatario&gt;
+    ): ApiResult&lt;ComunicacionRegistrada&gt; {
+<span class="fc bfc" id="L77" title="All 2 branches covered.">        require(envios.all { it.comunicacionId == comunicacion.id }) { &quot;Los envíos deben pertenecer al comunicado&quot; }</span>
+
+<span class="fc bfc" id="L79" title="All 2 branches covered.">        val autor = almacen.usuarios.first().firstOrNull { it.id == comunicacion.autorId }</span>
+<span class="fc" id="L80">            ?: return ApiResult.Error(ReglasComunicado.MSG_SIN_SESION, CausaError.NO_AUTORIZADO, 401)</span>
+<span class="fc" id="L81">        val datos = datosActuales()</span>
+
+        // RF-03, RN-01: las mismas reglas de la pantalla, sobre lo que hay en Room.
+<span class="fc" id="L84">        val errores = ReglasComunicado.validar(</span>
+<span class="fc" id="L85">            comunicacion.asunto,</span>
+<span class="fc" id="L86">            ReglasComunicado.sinAviso(comunicacion.cuerpo),</span>
+<span class="fc" id="L87">            comunicacion.tipo,</span>
+<span class="fc" id="L88">            comunicacion.alcance,</span>
+<span class="fc" id="L89">            destino,</span>
+<span class="fc" id="L90">            autor,</span>
+<span class="fc" id="L91">            datos</span>
+        )
+<span class="fc bfc" id="L93" title="All 2 branches covered.">        primerError(errores)?.let { return it }</span>
+
+<span class="fc bfc" id="L95" title="All 2 branches covered.">        if (almacen.comunicaciones.first().any { it.id == comunicacion.id }) {</span>
+<span class="fc" id="L96">            return ApiResult.Error(&quot;Ya existe un comunicado con ese identificador&quot;, CausaError.CONFLICTO, 409, &quot;id&quot;)</span>
+        }
+
+        // Los envíos deben ser exactamente los de los destinatarios, por el canal que corresponde (RF-12).
+<span class="fc" id="L100">        val destinatarios = ReglasComunicado.resolverApoderados(comunicacion.alcance, destino, datos)</span>
+<span class="fc" id="L101">        val porApoderado = envios.associateBy { it.apoderadoId }</span>
+<span class="fc bfc" id="L102" title="All 4 branches covered.">        val coinciden = envios.size == destinatarios.size &amp;&amp; destinatarios.all { apoderado -&gt;</span>
+<span class="pc bpc" id="L103" title="1 of 4 branches missed.">            porApoderado[apoderado.id]?.canal == ReglasComunicado.canalDe(apoderado, comunicacion.requiereFirmaFisica)</span>
+        }
+<span class="fc bfc" id="L105" title="All 2 branches covered.">        if (!coinciden) {</span>
+<span class="fc" id="L106">            return ApiResult.Error(</span>
+<span class="fc" id="L107">                &quot;Los envíos informados no coinciden con los destinatarios del comunicado&quot;,</span>
+<span class="fc" id="L108">                CausaError.VALIDACION, 422, &quot;envios&quot;</span>
+            )
+        }
+
+<span class="fc" id="L112">        return try {</span>
+<span class="fc" id="L113">            almacen.guardarRegistro(comunicacion, envios)</span>
+<span class="fc" id="L114">            ApiResult.Success(</span>
+<span class="fc" id="L115">                ComunicacionRegistrada(comunicacion, envios, ResumenEnvio.de(envios, comunicacion.requiereFirmaFisica))</span>
+            )
+<span class="nc" id="L117">        } catch (cancelacion: CancellationException) {</span>
+<span class="nc" id="L118">            throw cancelacion</span>
+<span class="fc" id="L119">        } catch (e: Exception) {</span>
+<span class="fc" id="L120">            ApiResult.Error(&quot;No se pudieron guardar los datos en el dispositivo.&quot;, CausaError.LOCAL)</span>
+        }
+    }
+
+    // ---------------------------------------------------------------- RF-13
+
+<span class="fc" id="L126">    override suspend fun actualizarCanalPreferente(</span>
+        actor: Usuario?,
+        apoderadoId: String,
+        canal: CanalDespacho
+    ): ApiResult&lt;Apoderado&gt; {
+<span class="fc bfc" id="L131" title="All 2 branches covered.">        if (actor == null) return ApiResult.Error(ReglasComunicado.MSG_SIN_SESION, CausaError.NO_AUTORIZADO, 401)</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">        if (!ReglasComunicado.puedeConfigurarCanal(actor)) {</span>
+<span class="fc" id="L133">            return ApiResult.Error(</span>
+<span class="fc" id="L134">                &quot;Solo Inspectoría General puede cambiar el canal preferente&quot;, CausaError.PROHIBIDO, 403</span>
+            )
+        }
+<span class="fc bfc" id="L137" title="All 2 branches covered.">        val apoderado = almacen.apoderados.first().firstOrNull { it.id == apoderadoId }</span>
+<span class="fc" id="L138">            ?: return ApiResult.Error(&quot;El apoderado no existe&quot;, CausaError.NO_ENCONTRADO, 404)</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">        if (!ValidadorContacto.valido(apoderado, canal)) {</span>
+<span class="fc" id="L140">            return ApiResult.Error(</span>
+<span class="fc" id="L141">                &quot;${apoderado.nombreCompleto} no tiene un dato válido para ${canal.etiqueta}&quot;,</span>
+<span class="fc" id="L142">                CausaError.VALIDACION, 422, &quot;canal&quot;</span>
+            )
+        }
+<span class="fc" id="L145">        return try {</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">            if (almacen.guardarCanal(apoderadoId, canal)) {</span>
+<span class="fc" id="L147">                ApiResult.Success(apoderado.copy(canalPreferente = canal))</span>
+            } else {
+<span class="fc" id="L149">                ApiResult.Error(&quot;El apoderado no existe&quot;, CausaError.NO_ENCONTRADO, 404)</span>
+            }
+<span class="fc" id="L151">        } catch (cancelacion: CancellationException) {</span>
+<span class="fc" id="L152">            throw cancelacion</span>
+<span class="fc" id="L153">        } catch (e: Exception) {</span>
+<span class="fc" id="L154">            ApiResult.Error(&quot;No se pudo guardar el canal&quot;, CausaError.LOCAL)</span>
+        }
+    }
+
+    // ---------------------------------------------------------------- restablecer
+
+    override suspend fun restablecer(): ApiResult&lt;Unit&gt; =
+<span class="fc" id="L161">        try {</span>
+<span class="fc" id="L162">            almacen.restablecer()</span>
+<span class="fc" id="L163">            ApiResult.Success(Unit)</span>
+<span class="fc" id="L164">        } catch (cancelacion: CancellationException) {</span>
+<span class="fc" id="L165">            throw cancelacion</span>
+<span class="fc" id="L166">        } catch (e: Exception) {</span>
+<span class="fc" id="L167">            ApiResult.Error(&quot;No se pudieron restablecer los datos locales.&quot;, CausaError.LOCAL)</span>
+<span class="fc" id="L168">        }</span>
+
+    // ---------------------------------------------------------------- utilidades
+
+<span class="fc" id="L172">    private suspend fun datosActuales(): DatosReferencia {</span>
+<span class="fc" id="L173">        val estudiantes = almacen.estudiantes.first()</span>
+<span class="fc" id="L174">        return DatosReferencia(</span>
+<span class="fc" id="L175">            cursos = estudiantes.map { it.curso }.distinct().sorted(),</span>
+<span class="fc" id="L176">            talleres = almacen.talleres.first(),</span>
+<span class="fc" id="L177">            estudiantes = estudiantes,</span>
+<span class="fc" id="L178">            apoderados = almacen.apoderados.first()</span>
+        )
+    }
+
+    /** Primer error del formulario, con la causa que daría el servidor (403 perfil, 400/422 formato o regla). */
+    private fun primerError(errores: ErroresComunicado): ApiResult.Error? {
+<span class="fc bfc" id="L184" title="All 2 branches covered.">        val primero = listOf(</span>
+<span class="fc" id="L185">            &quot;asunto&quot; to errores.asunto,</span>
+<span class="fc" id="L186">            &quot;cuerpo&quot; to errores.cuerpo,</span>
+<span class="fc" id="L187">            &quot;tipo&quot; to errores.tipo,</span>
+<span class="fc" id="L188">            &quot;alcance&quot; to errores.alcance,</span>
+<span class="fc" id="L189">            &quot;destino&quot; to errores.destino</span>
+<span class="fc bfc" id="L190" title="All 2 branches covered.">        ).firstOrNull { it.second != null } ?: return null</span>
+<span class="fc" id="L191">        val campo = primero.first</span>
+<span class="fc" id="L192">        val mensaje = primero.second!!</span>
+<span class="fc bfc" id="L193" title="All 2 branches covered.">        val prohibido = mensaje == ReglasComunicado.MSG_TIPO_NO_DISPONIBLE ||</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">            mensaje == ReglasComunicado.MSG_SOLO_CURSO ||</span>
+<span class="pc bpc" id="L195" title="1 of 2 branches missed.">            mensaje == ReglasComunicado.MSG_SIN_CURSO ||</span>
+<span class="pc bpc" id="L196" title="1 of 2 branches missed.">            mensaje.startsWith(&quot;Tu perfil no puede&quot;)</span>
+<span class="fc bfc" id="L197" title="All 2 branches covered.">        return if (prohibido) {</span>
+<span class="fc" id="L198">            ApiResult.Error(mensaje, CausaError.PROHIBIDO, 403, campo)</span>
+        } else {
+<span class="fc" id="L200">            ApiResult.Error(mensaje, CausaError.VALIDACION, 400, campo)</span>
+        }
+    }
+
+    companion object {
+        /** Token de la sesión local: no es un secreto, solo marca que no hay sesión en el servidor. */
+        const val TOKEN_LOCAL = &quot;sesion-local&quot;
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

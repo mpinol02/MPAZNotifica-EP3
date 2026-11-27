@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Theme.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.ui.theme</a> &gt; <span class="el_source">Theme.kt</span></div><h1>Theme.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.ui.theme
+
+import android.app.Activity
+import android.os.Build
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
+
+// Paleta de la marca (logo e ícono). Se mantiene igual a res/values/colors.xml.
+<span class="nc" id="L20">private val AzulMPAZ = Color(0xFF0D47A1)</span>
+<span class="nc" id="L21">private val AzulMPAZClaro = Color(0xFF1565C0)</span>
+<span class="nc" id="L22">private val NaranjoAlerta = Color(0xFFEF6C00)</span>
+<span class="nc" id="L23">private val NaranjoSuave = Color(0xFFFFE0B2)</span>
+<span class="nc" id="L24">private val NaranjoOscuro = Color(0xFF3E2000)</span>
+
+<span class="nc" id="L26">private val LightColors = lightColorScheme(</span>
+<span class="nc" id="L27">    primary = AzulMPAZ,</span>
+<span class="nc" id="L28">    onPrimary = Color.White,</span>
+<span class="nc" id="L29">    secondary = NaranjoAlerta,</span>
+<span class="nc" id="L30">    onSecondary = Color.White,</span>
+<span class="nc" id="L31">    tertiary = NaranjoAlerta,</span>
+<span class="nc" id="L32">    onTertiary = Color.White,</span>
+<span class="nc" id="L33">    tertiaryContainer = NaranjoSuave,</span>
+<span class="nc" id="L34">    onTertiaryContainer = NaranjoOscuro</span>
+)
+
+<span class="nc" id="L37">private val DarkColors = darkColorScheme(</span>
+<span class="nc" id="L38">    primary = AzulMPAZClaro,</span>
+<span class="nc" id="L39">    onPrimary = Color.White,</span>
+<span class="nc" id="L40">    secondary = NaranjoAlerta,</span>
+<span class="nc" id="L41">    onSecondary = Color.White,</span>
+<span class="nc" id="L42">    tertiary = NaranjoAlerta,</span>
+<span class="nc" id="L43">    onTertiary = Color.White,</span>
+<span class="nc" id="L44">    tertiaryContainer = Color(0xFF5C3300),</span>
+<span class="nc" id="L45">    onTertiaryContainer = NaranjoSuave</span>
+)
+
+@Suppress(&quot;DEPRECATION&quot;)
+@Composable
+fun MpazNotificaTheme(
+<span class="nc bnc" id="L51" title="All 2 branches missed.">    darkTheme: Boolean = isSystemInDarkTheme(),</span>
+<span class="nc bnc" id="L52" title="All 2 branches missed.">    dynamicColor: Boolean = false, // false = siempre usar los colores de la app</span>
+    content: @Composable () -&gt; Unit
+<span class="nc bnc" id="L54" title="All 28 branches missed.">) {</span>
+<span class="nc" id="L55">    val colorScheme = when {</span>
+<span class="nc bnc" id="L56" title="All 4 branches missed.">        dynamicColor &amp;&amp; Build.VERSION.SDK_INT &gt;= Build.VERSION_CODES.S -&gt; {</span>
+<span class="nc" id="L57">            val context = LocalContext.current</span>
+<span class="nc bnc" id="L58" title="All 2 branches missed.">            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)</span>
+        }
+<span class="nc bnc" id="L60" title="All 2 branches missed.">        darkTheme -&gt; DarkColors</span>
+<span class="nc" id="L61">        else -&gt; LightColors</span>
+    }
+
+<span class="nc" id="L64">    val view = LocalView.current</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">    if (!view.isInEditMode) {</span>
+<span class="nc" id="L66">        SideEffect {</span>
+<span class="nc" id="L67">            val window = (view.context as Activity).window</span>
+<span class="nc" id="L68">            window.statusBarColor = colorScheme.primary.toArgb()</span>
+<span class="nc" id="L69">            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false</span>
+<span class="nc" id="L70">        }</span>
+    }
+
+<span class="nc" id="L73">    MaterialTheme(</span>
+<span class="nc" id="L74">        colorScheme = colorScheme,</span>
+<span class="nc" id="L75">        typography = MaterialTheme.typography,</span>
+<span class="nc" id="L76">        content = content</span>
+    )
+<span class="nc bnc" id="L78" title="All 2 branches missed.">}</span>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

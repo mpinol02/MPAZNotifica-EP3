@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MockData.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.data</a> &gt; <span class="el_source">MockData.kt</span></div><h1>MockData.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.data
+
+import com.mpaznotifica.app.domain.ReglasComunicado
+import com.mpaznotifica.app.model.AlcanceEnvio
+import com.mpaznotifica.app.model.Apoderado
+import com.mpaznotifica.app.model.CanalDespacho
+import com.mpaznotifica.app.model.Comunicacion
+import com.mpaznotifica.app.model.EnvioDestinatario
+import com.mpaznotifica.app.model.EstadoEnvio
+import com.mpaznotifica.app.model.Estudiante
+import com.mpaznotifica.app.model.Perfil
+import com.mpaznotifica.app.model.Taller
+import com.mpaznotifica.app.model.TipoComunicacion
+import com.mpaznotifica.app.model.Usuario
+
+/**
+ * Base de datos sintética: datos 100% FICTICIOS (Ley 19.628 y Ley 21.719: prohibido usar datos
+ * reales de estudiantes o apoderados). MpazRepository la copia a Room la primera vez que se
+ * abre la app; desde ahí todo se lee y escribe en Room.
+ *
+ * Las claves de los usuarios de prueba no están en texto plano: aquí solo figura su hash
+ * (SHA-256 con la sal de demostración de domain/Credenciales.kt). Las claves de prueba están en el README.
+ */
+object MockData {
+
+    private const val HASH_INSPECTORIA = &quot;dfa8c1c8c621471391ec1965eb346d9b2efda11915045d13c146135d10b0a66a&quot;
+    private const val HASH_PROFESOR = &quot;382d77264fa0692379587045f7640e74e02993fc2898b78bc2ea6d93c76788f5&quot;
+
+<span class="fc" id="L29">    val usuarios = listOf(</span>
+<span class="fc" id="L30">        Usuario(&quot;U1&quot;, &quot;Inspectoría General (demo)&quot;, &quot;inspectoria@mpaznotifica.cl&quot;, HASH_INSPECTORIA, Perfil.INSPECTORIA_GENERAL),</span>
+<span class="fc" id="L31">        Usuario(&quot;U2&quot;, &quot;Profesor/a Jefe 4° A (demo)&quot;, &quot;profesor.4basicoA@mpaznotifica.cl&quot;, HASH_PROFESOR, Perfil.PROFESOR_JEFE, &quot;4° Básico A&quot;),</span>
+<span class="fc" id="L32">        Usuario(&quot;U3&quot;, &quot;Profesor/a Jefe 2° A (demo)&quot;, &quot;profesor.2basicoA@mpaznotifica.cl&quot;, HASH_PROFESOR, Perfil.PROFESOR_JEFE, &quot;2° Básico A&quot;),</span>
+    )
+
+<span class="fc" id="L35">    val talleres = listOf(</span>
+<span class="fc" id="L36">        Taller(&quot;T1&quot;, &quot;Taller de Robótica&quot;),</span>
+<span class="fc" id="L37">        Taller(&quot;T2&quot;, &quot;Taller de Fútbol&quot;),</span>
+    )
+
+    // Un apoderado puede tener más de un pupilo (AP1 tiene a E1 y E4; AP6 a E7 y E8).
+<span class="fc" id="L41">    val estudiantes = listOf(</span>
+<span class="fc" id="L42">        Estudiante(&quot;E1&quot;, &quot;Estudiante Ficticio 1&quot;, &quot;4° Básico A&quot;, listOf(&quot;T1&quot;)),</span>
+<span class="fc" id="L43">        Estudiante(&quot;E2&quot;, &quot;Estudiante Ficticio 2&quot;, &quot;4° Básico A&quot;),</span>
+<span class="fc" id="L44">        Estudiante(&quot;E3&quot;, &quot;Estudiante Ficticio 3&quot;, &quot;2° Básico A&quot;, listOf(&quot;T2&quot;)),</span>
+<span class="fc" id="L45">        Estudiante(&quot;E4&quot;, &quot;Estudiante Ficticio 4&quot;, &quot;8° Básico A&quot;, listOf(&quot;T1&quot;, &quot;T2&quot;)),</span>
+<span class="fc" id="L46">        Estudiante(&quot;E5&quot;, &quot;Estudiante Ficticio 5&quot;, &quot;4° Básico A&quot;, listOf(&quot;T2&quot;)),</span>
+<span class="fc" id="L47">        Estudiante(&quot;E6&quot;, &quot;Estudiante Ficticio 6&quot;, &quot;1° Básico A&quot;),</span>
+<span class="fc" id="L48">        Estudiante(&quot;E7&quot;, &quot;Estudiante Ficticio 7&quot;, &quot;3° Básico A&quot;),</span>
+<span class="fc" id="L49">        Estudiante(&quot;E8&quot;, &quot;Estudiante Ficticio 8&quot;, &quot;5° Básico A&quot;),</span>
+    )
+
+<span class="fc" id="L52">    val cursos: List&lt;String&gt; = estudiantes.map { it.curso }.distinct().sorted()</span>
+
+<span class="fc" id="L54">    val apoderados = listOf(</span>
+<span class="fc" id="L55">        Apoderado(&quot;AP1&quot;, &quot;Apoderado Ficticio 1&quot;, &quot;apoderado1@ejemplo.cl&quot;, &quot;+56900000001&quot;, CanalDespacho.EMAIL, listOf(&quot;E1&quot;, &quot;E4&quot;)),</span>
+<span class="fc" id="L56">        Apoderado(&quot;AP2&quot;, &quot;Apoderado Ficticio 2&quot;, &quot;apoderado2@ejemplo.cl&quot;, &quot;+56900000002&quot;, CanalDespacho.WHATSAPP, listOf(&quot;E2&quot;)),</span>
+<span class="fc" id="L57">        Apoderado(&quot;AP3&quot;, &quot;Apoderado Ficticio 3&quot;, &quot;apoderado3@ejemplo.cl&quot;, &quot;+56900000003&quot;, CanalDespacho.SMS, listOf(&quot;E3&quot;)),</span>
+        // AP4 tiene el teléfono incompleto a propósito: permite ver un despacho FALLIDO.
+<span class="fc" id="L59">        Apoderado(&quot;AP4&quot;, &quot;Apoderado Ficticio 4&quot;, &quot;apoderado4@ejemplo.cl&quot;, &quot;+5690000&quot;, CanalDespacho.SMS, listOf(&quot;E5&quot;)),</span>
+<span class="fc" id="L60">        Apoderado(&quot;AP5&quot;, &quot;Apoderado Ficticio 5&quot;, &quot;apoderado5@ejemplo.cl&quot;, &quot;+56900000005&quot;, CanalDespacho.EMAIL, listOf(&quot;E6&quot;)),</span>
+<span class="fc" id="L61">        Apoderado(&quot;AP6&quot;, &quot;Apoderado Ficticio 6&quot;, &quot;apoderado6@ejemplo.cl&quot;, &quot;+56900000006&quot;, CanalDespacho.WHATSAPP, listOf(&quot;E7&quot;, &quot;E8&quot;)),</span>
+    )
+
+    /** Historial inicial de la bitácora (los despachos de estos registros ya ocurrieron). */
+<span class="fc" id="L65">    val comunicados = listOf(</span>
+<span class="fc" id="L66">        Comunicacion(</span>
+<span class="fc" id="L67">            id = &quot;C1&quot;, asunto = &quot;Reunión de apoderados 4° Básico A&quot;,</span>
+<span class="fc" id="L68">            cuerpo = &quot;Se cita a reunión de apoderados el viernes a las 18:00 hrs.&quot;,</span>
+<span class="fc" id="L69">            tipo = TipoComunicacion.CITACION, alcance = AlcanceEnvio.CURSO, destinoReferencia = &quot;4° Básico A&quot;,</span>
+<span class="fc" id="L70">            autorId = &quot;U2&quot;, autorNombre = &quot;Profesor/a Jefe 4° A (demo)&quot;, fechaHora = &quot;2026-09-01 10:00:00&quot;</span>
+        ),
+<span class="fc" id="L72">        Comunicacion(</span>
+<span class="fc" id="L73">            id = &quot;C2&quot;, asunto = &quot;Salida pedagógica al museo&quot;,</span>
+<span class="fc" id="L74">            cuerpo = ReglasComunicado.cuerpoFinal(</span>
+<span class="fc" id="L75">                &quot;Se informa salida pedagógica al museo. La autorización debe firmarse en papel y devolverse al profesor jefe.&quot;,</span>
+<span class="fc" id="L76">                requiereFirmaFisica = true</span>
+            ),
+<span class="fc" id="L78">            tipo = TipoComunicacion.SALIDA_PEDAGOGICA, alcance = AlcanceEnvio.COLEGIO_COMPLETO,</span>
+<span class="fc" id="L79">            requiereFirmaFisica = true,</span>
+<span class="fc" id="L80">            autorId = &quot;U1&quot;, autorNombre = &quot;Inspectoría General (demo)&quot;, fechaHora = &quot;2026-09-15 09:30:00&quot;</span>
+        ),
+<span class="fc" id="L82">        Comunicacion(</span>
+<span class="fc" id="L83">            id = &quot;C3&quot;, asunto = &quot;Suspensión de clases por capacitación&quot;,</span>
+<span class="fc" id="L84">            cuerpo = &quot;Se informa que el lunes no habrá clases por jornada de capacitación docente.&quot;,</span>
+<span class="fc" id="L85">            tipo = TipoComunicacion.INSTITUCIONAL, alcance = AlcanceEnvio.COLEGIO_COMPLETO,</span>
+<span class="fc" id="L86">            autorId = &quot;U1&quot;, autorNombre = &quot;Inspectoría General (demo)&quot;, fechaHora = &quot;2026-10-05 08:00:00&quot;</span>
+        ),
+    )
+
+<span class="fc" id="L90">    val envios: List&lt;EnvioDestinatario&gt; = buildList {</span>
+        // C1: curso 4° Básico A (AP1, AP2, AP4) por el canal preferente de cada uno.
+<span class="fc" id="L92">        add(envio(&quot;EV1&quot;, &quot;C1&quot;, &quot;AP1&quot;, CanalDespacho.EMAIL, EstadoEnvio.DESPACHADO))</span>
+<span class="fc" id="L93">        add(envio(&quot;EV2&quot;, &quot;C1&quot;, &quot;AP2&quot;, CanalDespacho.WHATSAPP, EstadoEnvio.DESPACHADO))</span>
+<span class="fc" id="L94">        add(envio(&quot;EV3&quot;, &quot;C1&quot;, &quot;AP4&quot;, CanalDespacho.SMS, EstadoEnvio.FALLIDO))</span>
+        // C2: autorización con firma física, todos por correo.
+<span class="fc" id="L96">        apoderados.forEachIndexed { i, ap -&gt;</span>
+<span class="fc" id="L97">            add(envio(&quot;EV${4 + i}&quot;, &quot;C2&quot;, ap.id, CanalDespacho.EMAIL, EstadoEnvio.DESPACHADO))</span>
+<span class="fc" id="L98">        }</span>
+        // C3: colegio completo por el canal preferente de cada apoderado.
+<span class="fc" id="L100">        apoderados.forEachIndexed { i, ap -&gt;</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">            val estado = if (ap.id == &quot;AP4&quot;) EstadoEnvio.FALLIDO else EstadoEnvio.DESPACHADO</span>
+<span class="fc" id="L102">            add(envio(&quot;EV${10 + i}&quot;, &quot;C3&quot;, ap.id, ap.canalPreferente, estado))</span>
+<span class="fc" id="L103">        }</span>
+<span class="fc" id="L104">    }</span>
+
+    private fun envio(
+        id: String,
+        comunicacionId: String,
+        apoderadoId: String,
+        canal: CanalDespacho,
+        estado: EstadoEnvio
+<span class="fc" id="L112">    ) = EnvioDestinatario(</span>
+<span class="fc" id="L113">        id = id,</span>
+<span class="fc" id="L114">        comunicacionId = comunicacionId,</span>
+<span class="fc" id="L115">        apoderadoId = apoderadoId,</span>
+<span class="fc" id="L116">        canal = canal,</span>
+<span class="fc" id="L117">        estado = estado,</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">        detalle = if (estado == EstadoEnvio.DESPACHADO) {</span>
+<span class="fc" id="L119">            &quot;Despachado (simulado) por ${canal.etiqueta}&quot;</span>
+        } else {
+<span class="fc" id="L121">            &quot;Teléfono inválido o ausente para ${canal.etiqueta}&quot;</span>
+        }
+<span class="fc" id="L123">    )</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

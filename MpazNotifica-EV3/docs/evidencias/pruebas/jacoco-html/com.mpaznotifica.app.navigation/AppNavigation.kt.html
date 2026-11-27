@@ -1,0 +1,309 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AppNavigation.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.navigation</a> &gt; <span class="el_source">AppNavigation.kt</span></div><h1>AppNavigation.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.navigation
+
+import android.net.Uri
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.mpaznotifica.app.ui.components.FranjaModo
+import com.mpaznotifica.app.ui.screen.LoginScreen
+import com.mpaznotifica.app.ui.screen.PanelScreen
+import com.mpaznotifica.app.ui.screen.apoderados.ApoderadosScreen
+import com.mpaznotifica.app.ui.screen.comunicados.DetalleComunicadoScreen
+import com.mpaznotifica.app.ui.screen.comunicados.HistorialScreen
+import com.mpaznotifica.app.ui.screen.comunicados.RedactarComunicadoScreen
+import com.mpaznotifica.app.viewmodel.MpazNotificaViewModel
+
+// Define las rutas disponibles en la aplicación.
+object Rutas {
+
+    const val LOGIN = &quot;login&quot;
+    const val PANEL = &quot;panel&quot;
+    const val REDACTAR = &quot;redactar&quot;
+    const val HISTORIAL = &quot;historial&quot;
+    const val DETALLE = &quot;detalle/{id}&quot;
+    const val APODERADOS = &quot;apoderados&quot;
+
+    const val ARG_ID = &quot;id&quot;
+
+    // Genera la ruta del detalle utilizando el ID del comunicado.
+<span class="nc" id="L51">    fun detalle(id: String) = &quot;detalle/${Uri.encode(id)}&quot;</span>
+}
+
+/**
+ * Controla la navegación entre las pantallas.
+ *
+ * Utiliza un NavHost y un ViewModel compartido.
+ *
+ * EV3:
+ * - Mantiene las animaciones entre pantallas.
+ * - Protege las rutas mediante la sesión del usuario.
+ * - Permite abrir el detalle desde una notificación.
+ */
+@Composable
+fun AppNavigation(
+<span class="nc bnc" id="L66" title="All 2 branches missed.">    navController: NavHostController = rememberNavController(),</span>
+<span class="nc" id="L67">    viewModel: MpazNotificaViewModel = viewModel(),</span>
+
+    // EV3: recibe el ID enviado desde MainActivity.
+<span class="nc bnc" id="L70" title="All 2 branches missed.">    comunicadoPendiente: String? = null,</span>
+
+    // Limpia la notificación después de atenderla.
+<span class="nc bnc" id="L73" title="All 4 branches missed.">    onNotificacionAtendida: () -&gt; Unit = {}</span>
+<span class="nc bnc" id="L74" title="All 28 branches missed.">) {</span>
+
+    // Obtiene el usuario que tiene una sesión activa.
+<span class="nc" id="L77">    val usuario by viewModel.usuarioActivo.collectAsState()</span>
+
+    // Observa los comunicados almacenados.
+<span class="nc" id="L80">    val comunicados by viewModel.comunicados.collectAsState()</span>
+
+    // Obtiene la pantalla actual de la navegación.
+<span class="nc" id="L83">    val rutaActual =</span>
+<span class="nc" id="L84">        navController.currentBackStackEntryAsState()</span>
+<span class="nc bnc" id="L85" title="All 4 branches missed.">            .value?.destination?.route</span>
+
+    // =====================================================
+    // CONTROL DE SESIÓN
+    // =====================================================
+
+    // Protege las pantallas cuando no existe una sesión activa.
+<span class="nc bnc" id="L92" title="All 2 branches missed.">    LaunchedEffect(usuario, rutaActual) {</span>
+
+        if (
+<span class="nc bnc" id="L95" title="All 2 branches missed.">            usuario == null &amp;&amp;</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">            rutaActual != null &amp;&amp;</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">            rutaActual != Rutas.LOGIN</span>
+        ) {
+
+<span class="nc" id="L100">            navController.navigate(Rutas.LOGIN) {</span>
+
+                // Limpia la pila para impedir volver sin sesión.
+<span class="nc" id="L103">                popUpTo(navController.graph.id) {</span>
+<span class="nc" id="L104">                    inclusive = true</span>
+<span class="nc" id="L105">                }</span>
+<span class="nc" id="L106">            }</span>
+        }
+<span class="nc" id="L108">    }</span>
+
+    // =====================================================
+    // EV3: NAVEGACIÓN DESDE NOTIFICACIONES
+    // =====================================================
+
+<span class="nc" id="L114">    LaunchedEffect(</span>
+<span class="nc" id="L115">        usuario,</span>
+<span class="nc" id="L116">        comunicadoPendiente,</span>
+<span class="nc" id="L117">        rutaActual,</span>
+<span class="nc" id="L118">        comunicados</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">    ) {</span>
+
+<span class="nc" id="L121">        val id = comunicadoPendiente</span>
+
+        // Espera que exista una sesión y que el comunicado
+        // esté disponible en los datos de la aplicación.
+        if (
+<span class="nc bnc" id="L126" title="All 2 branches missed.">            usuario != null &amp;&amp;</span>
+<span class="nc bnc" id="L127" title="All 2 branches missed.">            id != null &amp;&amp;</span>
+<span class="nc bnc" id="L128" title="All 2 branches missed.">            rutaActual != null &amp;&amp;</span>
+<span class="nc bnc" id="L129" title="All 2 branches missed.">            rutaActual != Rutas.LOGIN &amp;&amp;</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">            comunicados.any { it.id == id }</span>
+        ) {
+
+            // Abre el detalle del comunicado correspondiente.
+<span class="nc" id="L134">            navController.navigate(Rutas.detalle(id)) {</span>
+
+                // Mantiene el panel como pantalla de regreso.
+<span class="nc" id="L137">                popUpTo(Rutas.PANEL) {</span>
+<span class="nc" id="L138">                    inclusive = false</span>
+<span class="nc" id="L139">                }</span>
+
+                // Evita duplicar el detalle en la navegación.
+<span class="nc" id="L142">                launchSingleTop = true</span>
+<span class="nc" id="L143">            }</span>
+
+            // Limpia el ID para evitar repetir la navegación.
+<span class="nc" id="L146">            onNotificacionAtendida()</span>
+        }
+<span class="nc" id="L148">    }</span>
+
+    // =====================================================
+    // ESTRUCTURA PRINCIPAL
+    // =====================================================
+
+<span class="nc" id="L154">    Column(</span>
+<span class="nc" id="L155">        modifier = Modifier.fillMaxSize()</span>
+    ) {
+
+        // Muestra si la aplicación funciona en modo local
+        // o conectada a un servidor.
+<span class="nc" id="L160">        FranjaModo(viewModel)</span>
+
+<span class="nc" id="L162">        Box(</span>
+<span class="nc" id="L163">            modifier = Modifier</span>
+<span class="nc" id="L164">                .weight(1f)</span>
+<span class="nc" id="L165">                .fillMaxWidth()</span>
+<span class="nc" id="L166">                .consumeWindowInsets(WindowInsets.statusBars)</span>
+        ) {
+
+<span class="nc" id="L169">            NavHost(</span>
+<span class="nc" id="L170">                navController = navController,</span>
+<span class="nc" id="L171">                startDestination = Rutas.LOGIN,</span>
+
+                // Animación de entrada entre pantallas.
+                enterTransition = {
+<span class="nc" id="L175">                    slideInHorizontally(</span>
+<span class="nc" id="L176">                        animationSpec = tween(280)</span>
+                    ) { ancho -&gt;
+<span class="nc" id="L178">                        ancho / 5</span>
+<span class="nc" id="L179">                    } + fadeIn(tween(280))</span>
+                },
+
+                // Animación de salida.
+                exitTransition = {
+<span class="nc" id="L184">                    fadeOut(tween(200))</span>
+                },
+
+                // Animación al regresar a una pantalla.
+                popEnterTransition = {
+<span class="nc" id="L189">                    fadeIn(tween(250))</span>
+                },
+
+                // Animación de salida al presionar atrás.
+                popExitTransition = {
+<span class="nc" id="L194">                    slideOutHorizontally(</span>
+<span class="nc" id="L195">                        animationSpec = tween(250)</span>
+                    ) { ancho -&gt;
+<span class="nc" id="L197">                        ancho / 5</span>
+<span class="nc" id="L198">                    } + fadeOut(tween(250))</span>
+                }
+
+            ) {
+
+                // =========================================
+                // LOGIN
+                // =========================================
+
+<span class="nc" id="L207">                composable(Rutas.LOGIN) {</span>
+
+<span class="nc" id="L209">                    LoginScreen(</span>
+<span class="nc" id="L210">                        viewModel = viewModel,</span>
+
+                        onIngresar = {
+
+                            // Ingresa al panel después del login.
+<span class="nc" id="L215">                            navController.navigate(Rutas.PANEL) {</span>
+
+                                // Elimina el login de la pila.
+<span class="nc" id="L218">                                popUpTo(Rutas.LOGIN) {</span>
+<span class="nc" id="L219">                                    inclusive = true</span>
+<span class="nc" id="L220">                                }</span>
+<span class="nc" id="L221">                            }</span>
+<span class="nc" id="L222">                        }</span>
+                    )
+<span class="nc" id="L224">                }</span>
+
+                // =========================================
+                // PANEL PRINCIPAL
+                // =========================================
+
+<span class="nc" id="L230">                composable(Rutas.PANEL) {</span>
+
+<span class="nc" id="L232">                    PanelScreen(</span>
+<span class="nc" id="L233">                        navController,</span>
+<span class="nc" id="L234">                        viewModel,</span>
+
+                        onCerrarSesion = {
+
+                            // Cierra la sesión del usuario.
+<span class="nc" id="L239">                            viewModel.logout()</span>
+<span class="nc" id="L240">                        }</span>
+                    )
+<span class="nc" id="L242">                }</span>
+
+                // =========================================
+                // REDACTAR COMUNICADO
+                // =========================================
+
+<span class="nc" id="L248">                composable(Rutas.REDACTAR) {</span>
+
+<span class="nc" id="L250">                    RedactarComunicadoScreen(</span>
+<span class="nc" id="L251">                        navController,</span>
+<span class="nc" id="L252">                        viewModel</span>
+                    )
+<span class="nc" id="L254">                }</span>
+
+                // =========================================
+                // HISTORIAL
+                // =========================================
+
+<span class="nc" id="L260">                composable(Rutas.HISTORIAL) {</span>
+
+<span class="nc" id="L262">                    HistorialScreen(</span>
+<span class="nc" id="L263">                        navController,</span>
+<span class="nc" id="L264">                        viewModel</span>
+                    )
+<span class="nc" id="L266">                }</span>
+
+                // =========================================
+                // DETALLE DEL COMUNICADO
+                // =========================================
+
+<span class="nc" id="L272">                composable(</span>
+<span class="nc" id="L273">                    route = Rutas.DETALLE,</span>
+
+                    // Recibe el identificador del comunicado.
+<span class="nc" id="L276">                    arguments = listOf(</span>
+<span class="nc" id="L277">                        navArgument(Rutas.ARG_ID) {</span>
+<span class="nc" id="L278">                            type = NavType.StringType</span>
+<span class="nc" id="L279">                        }</span>
+                    )
+
+<span class="nc" id="L282">                ) { entrada -&gt;</span>
+
+<span class="nc" id="L284">                    DetalleComunicadoScreen(</span>
+<span class="nc" id="L285">                        navController = navController,</span>
+<span class="nc" id="L286">                        viewModel = viewModel,</span>
+
+                        // Obtiene el ID desde la ruta.
+<span class="nc" id="L289">                        comunicadoId = entrada.arguments</span>
+<span class="nc bnc" id="L290" title="All 2 branches missed.">                            ?.getString(Rutas.ARG_ID)</span>
+                    )
+<span class="nc" id="L292">                }</span>
+
+                // =========================================
+                // APODERADOS Y CANAL PREFERENTE
+                // =========================================
+
+<span class="nc" id="L298">                composable(Rutas.APODERADOS) {</span>
+
+<span class="nc" id="L300">                    ApoderadosScreen(</span>
+<span class="nc" id="L301">                        navController,</span>
+<span class="nc" id="L302">                        viewModel</span>
+                    )
+<span class="nc" id="L304">                }</span>
+<span class="nc" id="L305">            }</span>
+<span class="nc" id="L306">        }</span>
+<span class="nc" id="L307">    }</span>
+<span class="nc bnc" id="L308" title="All 2 branches missed.">}</span>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

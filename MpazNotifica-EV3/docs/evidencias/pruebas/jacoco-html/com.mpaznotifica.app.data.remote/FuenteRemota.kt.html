@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FuenteRemota.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.data.remote</a> &gt; <span class="el_source">FuenteRemota.kt</span></div><h1>FuenteRemota.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.data.remote
+
+import com.mpaznotifica.app.data.repository.ReferenciaRemota
+import com.mpaznotifica.app.model.Apoderado
+import com.mpaznotifica.app.model.CanalDespacho
+import com.mpaznotifica.app.model.Comunicacion
+import com.mpaznotifica.app.model.EnvioDestinatario
+import com.mpaznotifica.app.model.Usuario
+
+/** Sesión abierta en el servidor: el usuario y su token Bearer. */
+<span class="fc" id="L11">data class SesionRemota(val usuario: Usuario, val token: String)</span>
+
+/** Bitácora completa tal como la entrega el servidor. */
+<span class="nc" id="L14">data class BitacoraRemota(</span>
+<span class="nc" id="L15">    val comunicaciones: List&lt;Comunicacion&gt;,</span>
+<span class="nc" id="L16">    val envios: List&lt;EnvioDestinatario&gt;</span>
+)
+
+/**
+ * EXPERIENCIA 3 - Parte 2 (TODO E3-5): fuente de datos remota.
+ *
+ * Es la ÚNICA clase que habla con [ApiService]: cada método llama al servicio dentro de
+ * [ManejadorErrores.llamar] y convierte los DTO a modelos con los mapeadores (E3-4). El repositorio
+ * (Parte 3) usa esta clase y nunca ve DTO ni excepciones.
+ *
+ * [api] es una función (no una instancia) para que un cambio de dirección del servidor se aplique
+ * sin reiniciar: cada llamada pide el servicio vigente.
+ *
+ * Criterio común: ningún método lanza excepciones (salvo la cancelación de corrutinas); todo
+ * fallo sale como [ApiResult.Error] o [ApiResult.SinConexion].
+ */
+<span class="nc" id="L32">class FuenteRemota(private val api: () -&gt; ApiService) {</span>
+
+    /**
+     * TODO(E3-5a): POST /auth/login con `LoginRequestDto(usuario.trim(), clave)`.
+     * Criterio: una respuesta sin token o sin usuario es inválida (lanzar
+     * [RespuestaInvalidaException] dentro de la llamada). Devuelve [SesionRemota] con el usuario
+     * mapeado (E3-4a).
+     */
+    suspend fun login(usuario: String, clave: String): ApiResult&lt;SesionRemota&gt; =
+<span class="nc" id="L41">        TODO(&quot;E3-5a: ManejadorErrores.llamar { api().login(...) } -&gt; SesionRemota&quot;)</span>
+
+    /**
+     * TODO(E3-5b): POST /auth/logout enviando `&quot;Bearer $token&quot;` en el encabezado Authorization.
+     * Criterio: devuelve el [ApiResult] de la llamada; el llamador ignorará un fallo.
+     */
+    suspend fun logout(token: String): ApiResult&lt;Unit&gt; =
+<span class="nc" id="L48">        TODO(&quot;E3-5b: ManejadorErrores.llamar { api().logout(\&quot;Bearer \$token\&quot;) }&quot;)</span>
+
+    /**
+     * TODO(E3-5c): descarga los datos de referencia: GET /usuarios, /talleres, /estudiantes y
+     * /apoderados (sin filtrar por curso: pasar null) y los convierte a [ReferenciaRemota]
+     * (`EstudianteRemoto` conserva el `apoderadoId` del DTO, que no puede venir vacío).
+     * Criterio: todo o nada; si una de las cuatro llamadas falla, devuelve ese error y no una
+     * referencia parcial.
+     */
+    suspend fun descargarReferencia(): ApiResult&lt;ReferenciaRemota&gt; =
+<span class="nc" id="L58">        TODO(&quot;E3-5c: cuatro llamadas con ManejadorErrores.llamar; cortar en el primer fallo&quot;)</span>
+
+    /**
+     * TODO(E3-5d): descarga la bitácora: GET /comunicaciones (sin filtros: null en los cuatro
+     * parámetros) y GET /envios (sin filtro). Mismo criterio de todo o nada.
+     */
+    suspend fun descargarBitacora(): ApiResult&lt;BitacoraRemota&gt; =
+<span class="nc" id="L65">        TODO(&quot;E3-5d: dos llamadas; devolver BitacoraRemota&quot;)</span>
+
+    /**
+     * TODO(E3-5e): POST /comunicaciones con el cuerpo `comunicacion.aNuevaDto(destino, envios)`
+     * (E3-4i) y respuesta convertida con `aDominio()` (E3-4j). Un 409 (id repetido) debe llegar como
+     * `CausaError.CONFLICTO`; un 403 como `PROHIBIDO` (RN-01).
+     */
+    suspend fun crearComunicacion(
+        comunicacion: Comunicacion,
+        destino: String?,
+        envios: List&lt;EnvioDestinatario&gt;
+    ): ApiResult&lt;ComunicacionRegistrada&gt; =
+<span class="nc" id="L77">        TODO(&quot;E3-5e: POST /comunicaciones&quot;)</span>
+
+    /**
+     * TODO(E3-5f): PATCH /apoderados/{id}/canal con `CanalRequestDto(canal.name)`; devuelve el
+     * apoderado actualizado (E3-4d). Un 403 (perfil sin permiso) y un 422 (sin contacto válido)
+     * deben llegar como [ApiResult.Error] con el mensaje del servidor.
+     */
+    suspend fun actualizarCanal(apoderadoId: String, canal: CanalDespacho): ApiResult&lt;Apoderado&gt; =
+<span class="nc" id="L85">        TODO(&quot;E3-5f: PATCH /apoderados/{id}/canal&quot;)</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

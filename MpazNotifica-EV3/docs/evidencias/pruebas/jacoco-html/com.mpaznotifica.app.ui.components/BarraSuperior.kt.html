@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BarraSuperior.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.ui.components</a> &gt; <span class="el_source">BarraSuperior.kt</span></div><h1>BarraSuperior.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.ui.components
+
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.navigation.NavHostController
+
+/**
+ * Barra superior común a todas las pantallas (un solo lugar para el estilo y la navegación).
+ *
+ * El botón ATRÁS NATIVO de Android ya funciona solo: el NavHost se conecta al back del sistema.
+ * Esta barra agrega la flecha visible, que hace lo mismo (popBackStack) y solo aparece si hay
+ * una pantalla anterior (no en el panel principal, porque el login sale de la pila al ingresar).
+ *
+ * @param onCerrarSesion si se entrega, muestra el botón &quot;Cerrar sesión&quot; a la derecha.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BarraSuperior(
+    titulo: String,
+    navController: NavHostController,
+<span class="nc" id="L31">    onCerrarSesion: (() -&gt; Unit)? = null</span>
+<span class="nc bnc" id="L32" title="All 2 branches missed.">) {</span>
+<span class="nc bnc" id="L33" title="All 2 branches missed.">    val hayPantallaAnterior = navController.previousBackStackEntry != null</span>
+
+<span class="nc bnc" id="L35" title="All 2 branches missed.">    TopAppBar(</span>
+<span class="nc bnc" id="L36" title="All 4 branches missed.">        title = { Text(titulo) },</span>
+<span class="nc" id="L37">        navigationIcon = {</span>
+<span class="nc bnc" id="L38" title="All 6 branches missed.">            if (hayPantallaAnterior) {</span>
+<span class="nc" id="L39">                IconButton(onClick = { navController.popBackStack() }) {</span>
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = &quot;Volver&quot;
+                    )
+                }
+<span class="nc" id="L45">            }</span>
+<span class="nc" id="L46">        },</span>
+<span class="nc" id="L47">        actions = {</span>
+<span class="nc bnc" id="L48" title="All 6 branches missed.">            if (onCerrarSesion != null) {</span>
+<span class="nc" id="L49">                TextButton(</span>
+<span class="nc" id="L50">                    onClick = onCerrarSesion,</span>
+<span class="nc" id="L51">                    colors = ButtonDefaults.textButtonColors(</span>
+<span class="nc" id="L52">                        contentColor = MaterialTheme.colorScheme.onPrimary</span>
+                    )
+                ) { Text(&quot;Cerrar sesión&quot;) }
+<span class="nc" id="L55">            }</span>
+<span class="nc" id="L56">        },</span>
+<span class="nc" id="L57">        colors = TopAppBarDefaults.topAppBarColors(</span>
+<span class="nc" id="L58">            containerColor = MaterialTheme.colorScheme.primary,</span>
+<span class="nc" id="L59">            titleContentColor = MaterialTheme.colorScheme.onPrimary,</span>
+<span class="nc" id="L60">            navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,</span>
+<span class="nc" id="L61">            actionIconContentColor = MaterialTheme.colorScheme.onPrimary</span>
+        )
+    )
+<span class="nc" id="L64">}</span>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

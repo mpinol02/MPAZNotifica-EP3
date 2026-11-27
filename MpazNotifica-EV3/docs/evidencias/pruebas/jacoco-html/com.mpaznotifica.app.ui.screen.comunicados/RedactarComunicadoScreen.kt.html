@@ -1,0 +1,1097 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RedactarComunicadoScreen.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.ui.screen.comunicados</a> &gt; <span class="el_source">RedactarComunicadoScreen.kt</span></div><h1>RedactarComunicadoScreen.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.ui.screen.comunicados
+
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
+import com.mpaznotifica.app.domain.ReglasComunicado
+import com.mpaznotifica.app.model.AdjuntoPdf
+import com.mpaznotifica.app.model.AlcanceEnvio
+import com.mpaznotifica.app.model.ErroresComunicado
+import com.mpaznotifica.app.model.EstadoEnvioUi
+import com.mpaznotifica.app.model.Perfil
+import com.mpaznotifica.app.model.SolicitudComunicado
+import com.mpaznotifica.app.model.TipoComunicacion
+import com.mpaznotifica.app.nativo.ArchivosPdf
+import com.mpaznotifica.app.nativo.Notificador
+import com.mpaznotifica.app.nativo.Vibracion
+import com.mpaznotifica.app.ui.components.AvisoCard
+import com.mpaznotifica.app.ui.components.BarraSuperior
+import com.mpaznotifica.app.ui.components.SelectorDesplegable
+import com.mpaznotifica.app.ui.components.apoyo
+import com.mpaznotifica.app.viewmodel.MpazNotificaViewModel
+import kotlinx.coroutines.launch
+
+/**
+ * Redacción y envío de comunicados.
+ *
+ * RF-02 a RF-08: formulario, permisos y despacho.
+ * RF-12: autorización con firma física.
+ *
+ * EV3:
+ * - Validaciones por campo.
+ * - Animaciones del formulario.
+ * - Progreso del despacho y almacenamiento.
+ * - Confirmación y resultado del envío.
+ */
+@Composable
+fun RedactarComunicadoScreen(
+    navController: NavHostController,
+    viewModel: MpazNotificaViewModel
+<span class="nc" id="L101">) {</span>
+
+    // Obtiene el contexto y los estados del ViewModel.
+<span class="nc" id="L104">    val context = LocalContext.current</span>
+<span class="nc" id="L105">    val usuario by viewModel.usuarioActivo.collectAsState()</span>
+<span class="nc" id="L106">    val datos by viewModel.datos.collectAsState()</span>
+<span class="nc" id="L107">    val estadoEnvio by viewModel.envioUi.collectAsState()</span>
+<span class="nc" id="L108">    val modoLocal by viewModel.modoLocal.collectAsState()</span>
+
+    // Estados de los campos del formulario.
+<span class="nc" id="L111">    var asunto by rememberSaveable { mutableStateOf(&quot;&quot;) }</span>
+<span class="nc" id="L112">    var cuerpo by rememberSaveable { mutableStateOf(&quot;&quot;) }</span>
+
+<span class="nc" id="L114">    var tipo by rememberSaveable {</span>
+<span class="nc" id="L115">        mutableStateOf&lt;TipoComunicacion?&gt;(null)</span>
+    }
+
+<span class="nc" id="L118">    var alcance by rememberSaveable {</span>
+<span class="nc" id="L119">        mutableStateOf&lt;AlcanceEnvio?&gt;(null)</span>
+    }
+
+<span class="nc" id="L122">    var destino by rememberSaveable {</span>
+<span class="nc" id="L123">        mutableStateOf&lt;String?&gt;(null)</span>
+    }
+
+<span class="nc" id="L126">    var requiereFirma by rememberSaveable {</span>
+<span class="nc" id="L127">        mutableStateOf(false)</span>
+    }
+
+<span class="nc" id="L130">    var intentoEnvio by rememberSaveable {</span>
+<span class="nc" id="L131">        mutableStateOf(false)</span>
+    }
+
+<span class="nc" id="L134">    var confirmando by rememberSaveable {</span>
+<span class="nc" id="L135">        mutableStateOf(false)</span>
+    }
+
+<span class="nc" id="L138">    var permisoSolicitado by rememberSaveable {</span>
+<span class="nc" id="L139">        mutableStateOf(false)</span>
+    }
+
+    // Controla el documento adjunto y sus errores.
+<span class="nc" id="L143">    var adjunto by remember {</span>
+<span class="nc" id="L144">        mutableStateOf&lt;AdjuntoPdf?&gt;(null)</span>
+    }
+
+<span class="nc" id="L147">    var errorAdjunto by remember {</span>
+<span class="nc" id="L148">        mutableStateOf&lt;String?&gt;(null)</span>
+    }
+
+<span class="nc" id="L151">    val scroll = rememberScrollState()</span>
+<span class="nc" id="L152">    val alcanceScope = rememberCoroutineScope()</span>
+
+    // Evita mostrar el resultado de un envío anterior.
+<span class="nc bnc" id="L155" title="All 2 branches missed.">    LaunchedEffect(Unit) {</span>
+<span class="nc" id="L156">        viewModel.reiniciarEnvio()</span>
+<span class="nc" id="L157">    }</span>
+
+    // Recurso nativo: vibración al finalizar el envío.
+<span class="nc bnc" id="L160" title="All 2 branches missed.">    LaunchedEffect(estadoEnvio) {</span>
+
+<span class="nc" id="L162">        val actual = estadoEnvio</span>
+
+<span class="nc bnc" id="L164" title="All 2 branches missed.">        if (actual is EstadoEnvioUi.Listo) {</span>
+<span class="nc" id="L165">            Vibracion.confirmar(</span>
+<span class="nc" id="L166">                context,</span>
+<span class="nc bnc" id="L167" title="All 2 branches missed.">                exito = actual.resumen.fallidos == 0</span>
+            )
+        }
+<span class="nc" id="L170">    }</span>
+
+    // Abre el selector nativo de documentos PDF.
+<span class="nc" id="L173">    val selectorPdf = rememberLauncherForActivityResult(</span>
+<span class="nc" id="L174">        ActivityResultContracts.OpenDocument()</span>
+    ) { uri -&gt;
+
+<span class="nc bnc" id="L177" title="All 2 branches missed.">        if (uri != null) {</span>
+
+<span class="nc" id="L179">            val resultado =</span>
+<span class="nc" id="L180">                ArchivosPdf.inspeccionar(context, uri)</span>
+
+<span class="nc" id="L182">            adjunto = resultado.adjunto</span>
+<span class="nc" id="L183">            errorAdjunto = resultado.error</span>
+        }
+<span class="nc" id="L185">    }</span>
+
+    // Solicita el permiso de notificaciones de Android.
+<span class="nc" id="L188">    val solicitudPermiso = rememberLauncherForActivityResult(</span>
+<span class="nc" id="L189">        ActivityResultContracts.RequestPermission()</span>
+<span class="nc" id="L190">    ) {</span>
+<span class="nc" id="L191">        confirmando = true</span>
+<span class="nc" id="L192">    }</span>
+
+    // Valida el formulario después del primer intento de envío.
+<span class="nc bnc" id="L195" title="All 2 branches missed.">    val errores: ErroresComunicado = if (intentoEnvio) {</span>
+
+<span class="nc" id="L197">        viewModel.validarComunicado(</span>
+<span class="nc" id="L198">            asunto,</span>
+<span class="nc" id="L199">            cuerpo,</span>
+<span class="nc" id="L200">            tipo,</span>
+<span class="nc" id="L201">            alcance,</span>
+<span class="nc" id="L202">            destino</span>
+        )
+
+    } else {
+
+<span class="nc" id="L207">        ErroresComunicado()</span>
+    }
+
+    // Obtiene las opciones autorizadas según el perfil.
+<span class="nc" id="L211">    val tiposDisponibles =</span>
+<span class="nc" id="L212">        viewModel.tiposPermitidos(usuario)</span>
+
+<span class="nc" id="L214">    val alcancesDisponibles =</span>
+<span class="nc" id="L215">        viewModel.alcancesPermitidos(usuario)</span>
+
+<span class="nc" id="L217">    val destinosDisponibles =</span>
+<span class="nc" id="L218">        remember(alcance, usuario, datos) {</span>
+<span class="nc" id="L219">            viewModel.destinosPara(alcance, usuario)</span>
+        }
+
+<span class="nc" id="L222">    val cantidadDestinatarios =</span>
+<span class="nc" id="L223">        viewModel.contarDestinatarios(alcance, destino)</span>
+
+    // Impide modificar el formulario durante el envío.
+<span class="nc" id="L226">    val enviando =</span>
+<span class="nc" id="L227">        estadoEnvio is EstadoEnvioUi.Enviando</span>
+
+<span class="nc" id="L229">    Scaffold(</span>
+<span class="nc" id="L230">        topBar = {</span>
+<span class="nc bnc" id="L231" title="All 4 branches missed.">            BarraSuperior(</span>
+<span class="nc" id="L232">                &quot;Redactar comunicado&quot;,</span>
+<span class="nc" id="L233">                navController</span>
+<span class="nc" id="L234">            )</span>
+<span class="nc" id="L235">        }</span>
+<span class="nc" id="L236">    ) { padding -&gt;</span>
+
+<span class="nc bnc" id="L238" title="All 4 branches missed.">        Column(</span>
+<span class="nc" id="L239">            modifier = Modifier</span>
+<span class="nc" id="L240">                .padding(padding)</span>
+<span class="nc" id="L241">                .fillMaxSize()</span>
+<span class="nc" id="L242">                .verticalScroll(scroll)</span>
+<span class="nc" id="L243">                .imePadding()</span>
+<span class="nc" id="L244">                .padding(16.dp),</span>
+<span class="nc" id="L245">            verticalArrangement = Arrangement.spacedBy(8.dp)</span>
+        ) {
+
+            // RF-06: informa las restricciones del Profesor Jefe.
+<span class="nc bnc" id="L249" title="All 4 branches missed.">            if (usuario?.perfil == Perfil.PROFESOR_JEFE) {</span>
+
+<span class="nc" id="L251">                AvisoCard(</span>
+                    texto = &quot;Como Profesor/a Jefe solo puedes enviar comunicados a tu curso&quot; +
+<span class="nc bnc" id="L253" title="All 6 branches missed.">                            (usuario?.cursoAsignado?.let {</span>
+<span class="nc" id="L254">                                &quot; ($it)&quot;</span>
+<span class="nc" id="L255">                            } ?: &quot;&quot;) + &quot;.&quot;,</span>
+
+<span class="nc" id="L257">                    icono = Icons.Filled.Info</span>
+                )
+            }
+
+            // =============================================
+            // ASUNTO
+            // =============================================
+
+<span class="nc" id="L265">            OutlinedTextField(</span>
+<span class="nc" id="L266">                value = asunto,</span>
+
+<span class="nc" id="L268">                onValueChange = {</span>
+<span class="nc" id="L269">                    asunto = it</span>
+<span class="nc" id="L270">                },</span>
+
+                label = {
+                    Text(&quot;Asunto&quot;)
+                },
+
+                leadingIcon = {
+                    Icon(
+                        Icons.Filled.Edit,
+                        contentDescription = null
+                    )
+                },
+
+<span class="nc bnc" id="L283" title="All 2 branches missed.">                trailingIcon = if (errores.asunto != null) {</span>
+                    {
+                        Icon(
+                            Icons.Filled.ErrorOutline,
+                            contentDescription = &quot;Campo con error&quot;,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                } else {
+<span class="nc" id="L292">                    null</span>
+                },
+
+                // Muestra el error o contador de caracteres.
+<span class="nc bnc" id="L296" title="All 2 branches missed.">                isError = errores.asunto != null,</span>
+
+<span class="nc" id="L298">                supportingText = apoyo(</span>
+<span class="nc bnc" id="L299" title="All 2 branches missed.">                    errores.asunto ?:</span>
+<span class="nc" id="L300">                    &quot;${asunto.trim().length}/${ReglasComunicado.MAX_ASUNTO}&quot;</span>
+                ),
+
+<span class="nc" id="L303">                singleLine = true,</span>
+
+<span class="nc" id="L305">                keyboardOptions = KeyboardOptions(</span>
+<span class="nc" id="L306">                    capitalization = KeyboardCapitalization.Sentences</span>
+                ),
+
+<span class="nc bnc" id="L309" title="All 2 branches missed.">                enabled = !enviando,</span>
+<span class="nc" id="L310">                modifier = Modifier.fillMaxWidth()</span>
+            )
+
+            // =============================================
+            // CUERPO DEL MENSAJE
+            // =============================================
+
+<span class="nc" id="L317">            OutlinedTextField(</span>
+<span class="nc" id="L318">                value = cuerpo,</span>
+
+<span class="nc" id="L320">                onValueChange = {</span>
+<span class="nc" id="L321">                    cuerpo = it</span>
+<span class="nc" id="L322">                },</span>
+
+                label = {
+                    Text(&quot;Cuerpo del mensaje&quot;)
+                },
+
+                leadingIcon = {
+                    Icon(
+                        Icons.Filled.Description,
+                        contentDescription = null
+                    )
+                },
+
+<span class="nc bnc" id="L335" title="All 2 branches missed.">                trailingIcon = if (errores.cuerpo != null) {</span>
+                    {
+                        Icon(
+                            Icons.Filled.ErrorOutline,
+                            contentDescription = &quot;Campo con error&quot;,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                } else {
+<span class="nc" id="L344">                    null</span>
+                },
+
+<span class="nc bnc" id="L347" title="All 2 branches missed.">                isError = errores.cuerpo != null,</span>
+
+<span class="nc" id="L349">                supportingText = apoyo(</span>
+<span class="nc bnc" id="L350" title="All 2 branches missed.">                    errores.cuerpo ?:</span>
+<span class="nc" id="L351">                    &quot;${cuerpo.trim().length}/${ReglasComunicado.MAX_CUERPO}&quot;</span>
+                ),
+
+<span class="nc" id="L354">                minLines = 4,</span>
+<span class="nc" id="L355">                maxLines = 8,</span>
+
+<span class="nc" id="L357">                keyboardOptions = KeyboardOptions(</span>
+<span class="nc" id="L358">                    capitalization = KeyboardCapitalization.Sentences</span>
+                ),
+
+<span class="nc bnc" id="L361" title="All 2 branches missed.">                enabled = !enviando,</span>
+<span class="nc" id="L362">                modifier = Modifier.fillMaxWidth()</span>
+            )
+
+            // =============================================
+            // TIPO DE COMUNICACIÓN
+            // =============================================
+
+<span class="nc" id="L369">            SelectorDesplegable(</span>
+<span class="nc" id="L370">                etiqueta = &quot;Tipo de comunicación&quot;,</span>
+<span class="nc" id="L371">                opciones = tiposDisponibles,</span>
+<span class="nc" id="L372">                seleccion = tipo,</span>
+<span class="nc" id="L373">                textoDe = { it.etiqueta },</span>
+
+<span class="nc" id="L375">                onSeleccion = {</span>
+<span class="nc" id="L376">                    tipo = it</span>
+<span class="nc" id="L377">                },</span>
+
+<span class="nc" id="L379">                error = errores.tipo,</span>
+
+                leadingIcon = {
+                    Icon(
+                        Icons.Filled.Category,
+                        contentDescription = null
+                    )
+                },
+
+<span class="nc bnc" id="L388" title="All 2 branches missed.">                enabled = !enviando</span>
+            )
+
+            // =============================================
+            // ALCANCE Y DESTINO
+            // =============================================
+
+<span class="nc" id="L395">            SelectorDesplegable(</span>
+<span class="nc" id="L396">                etiqueta = &quot;Alcance (destinatarios)&quot;,</span>
+<span class="nc" id="L397">                opciones = alcancesDisponibles,</span>
+<span class="nc" id="L398">                seleccion = alcance,</span>
+<span class="nc" id="L399">                textoDe = { it.etiqueta },</span>
+
+<span class="nc" id="L401">                onSeleccion = {</span>
+
+                    // Limpia el destino cuando cambia el alcance.
+<span class="nc" id="L404">                    alcance = it</span>
+<span class="nc" id="L405">                    destino = null</span>
+<span class="nc" id="L406">                },</span>
+
+<span class="nc" id="L408">                error = errores.alcance,</span>
+
+                leadingIcon = {
+                    Icon(
+                        Icons.Filled.Groups,
+                        contentDescription = null
+                    )
+                },
+
+<span class="nc bnc" id="L417" title="All 2 branches missed.">                enabled = !enviando</span>
+            )
+
+            // Anima la aparición del selector de destino.
+<span class="nc" id="L421">            AnimatedVisibility(</span>
+<span class="nc bnc" id="L422" title="All 2 branches missed.">                visible = alcance != null &amp;&amp;</span>
+<span class="nc bnc" id="L423" title="All 2 branches missed.">                        alcance != AlcanceEnvio.COLEGIO_COMPLETO,</span>
+
+<span class="nc" id="L425">                enter = fadeIn(tween(250)) +</span>
+<span class="nc" id="L426">                        expandVertically(tween(250)),</span>
+
+<span class="nc" id="L428">                exit = fadeOut(tween(200)) +</span>
+<span class="nc" id="L429">                        shrinkVertically(tween(200))</span>
+<span class="nc" id="L430">            ) {</span>
+
+<span class="nc" id="L432">                SelectorDesplegable(</span>
+<span class="nc" id="L433">                    etiqueta = &quot;Destino&quot;,</span>
+<span class="nc" id="L434">                    opciones = destinosDisponibles,</span>
+<span class="nc" id="L435">                    seleccion = destino,</span>
+<span class="nc" id="L436">                    textoDe = { it },</span>
+
+<span class="nc" id="L438">                    onSeleccion = {</span>
+<span class="nc" id="L439">                        destino = it</span>
+<span class="nc" id="L440">                    },</span>
+
+<span class="nc" id="L442">                    error = errores.destino,</span>
+
+                    leadingIcon = {
+                        Icon(
+                            Icons.Filled.Person,
+                            contentDescription = null
+                        )
+                    },
+
+<span class="nc bnc" id="L451" title="All 2 branches missed.">                    enabled = !enviando</span>
+                )
+<span class="nc" id="L453">            }</span>
+
+            // Muestra la cantidad de destinatarios disponibles.
+<span class="nc" id="L456">            AnimatedVisibility(</span>
+<span class="nc bnc" id="L457" title="All 2 branches missed.">                visible = alcance != null &amp;&amp;</span>
+<span class="nc bnc" id="L458" title="All 2 branches missed.">                        cantidadDestinatarios &gt; 0,</span>
+
+<span class="nc" id="L460">                enter = fadeIn(tween(250)),</span>
+<span class="nc" id="L461">                exit = fadeOut(tween(200))</span>
+<span class="nc" id="L462">            ) {</span>
+
+<span class="nc" id="L464">                Text(</span>
+<span class="nc" id="L465">                    text = &quot;Destinatarios: $cantidadDestinatarios apoderado(s). &quot; +</span>
+<span class="nc bnc" id="L466" title="All 2 branches missed.">                            if (requiereFirma) {</span>
+<span class="nc" id="L467">                                &quot;Se informará por correo a todos.&quot;</span>
+                            } else {
+<span class="nc" id="L469">                                &quot;Se utilizará el canal preferente.&quot;</span>
+                            },
+
+<span class="nc" id="L472">                    style = MaterialTheme.typography.bodySmall,</span>
+<span class="nc" id="L473">                    color = MaterialTheme.colorScheme.onSurfaceVariant</span>
+                )
+<span class="nc" id="L475">            }</span>
+
+            // =============================================
+            // DOCUMENTO PDF
+            // =============================================
+
+<span class="nc" id="L481">            OutlinedButton(</span>
+<span class="nc bnc" id="L482" title="All 2 branches missed.">                enabled = !enviando,</span>
+
+                onClick = {
+<span class="nc" id="L485">                    selectorPdf.launch(</span>
+<span class="nc" id="L486">                        arrayOf(&quot;application/pdf&quot;)</span>
+                    )
+<span class="nc" id="L488">                }</span>
+            ) {
+
+                Icon(
+                    Icons.Filled.AttachFile,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+
+                Spacer(
+                    modifier = Modifier.width(8.dp)
+                )
+
+                Text(&quot;Adjuntar PDF (opcional)&quot;)
+            }
+
+            // Muestra el PDF seleccionado con una animación.
+<span class="nc" id="L505">            AnimatedVisibility(</span>
+<span class="nc bnc" id="L506" title="All 2 branches missed.">                visible = adjunto != null,</span>
+
+<span class="nc" id="L508">                enter = fadeIn(tween(250)) +</span>
+<span class="nc" id="L509">                        expandVertically(tween(250)),</span>
+
+<span class="nc" id="L511">                exit = fadeOut(tween(200)) +</span>
+<span class="nc" id="L512">                        shrinkVertically(tween(200))</span>
+<span class="nc" id="L513">            ) {</span>
+
+<span class="nc" id="L515">                Row(</span>
+<span class="nc" id="L516">                    verticalAlignment = Alignment.CenterVertically</span>
+                ) {
+
+<span class="nc" id="L519">                    Icon(</span>
+<span class="nc" id="L520">                        Icons.Filled.PictureAsPdf,</span>
+<span class="nc" id="L521">                        contentDescription = null,</span>
+<span class="nc" id="L522">                        tint = MaterialTheme.colorScheme.primary</span>
+                    )
+
+<span class="nc" id="L525">                    Spacer(</span>
+<span class="nc" id="L526">                        modifier = Modifier.width(8.dp)</span>
+                    )
+
+<span class="nc" id="L529">                    Text(</span>
+<span class="nc bnc" id="L530" title="All 2 branches missed.">                        text = adjunto?.let {</span>
+<span class="nc" id="L531">                            &quot;${it.nombre} (${tamanoLegible(it.tamanoBytes)})&quot;</span>
+<span class="nc bnc" id="L532" title="All 2 branches missed.">                        }.orEmpty(),</span>
+
+<span class="nc" id="L534">                        style = MaterialTheme.typography.bodyMedium,</span>
+<span class="nc" id="L535">                        modifier = Modifier.weight(1f)</span>
+                    )
+
+                    // Permite retirar el PDF antes del envío.
+<span class="nc" id="L539">                    IconButton(</span>
+<span class="nc bnc" id="L540" title="All 2 branches missed.">                        enabled = !enviando,</span>
+
+<span class="nc" id="L542">                        onClick = {</span>
+<span class="nc" id="L543">                            adjunto = null</span>
+<span class="nc" id="L544">                            errorAdjunto = null</span>
+<span class="nc" id="L545">                        }</span>
+                    ) {
+
+                        Icon(
+                            Icons.Filled.Close,
+                            contentDescription = &quot;Quitar PDF&quot;
+                        )
+                    }
+<span class="nc" id="L553">                }</span>
+<span class="nc" id="L554">            }</span>
+
+            // Informa los errores del documento seleccionado.
+<span class="nc" id="L557">            AnimatedVisibility(</span>
+<span class="nc bnc" id="L558" title="All 2 branches missed.">                visible = errorAdjunto != null</span>
+<span class="nc" id="L559">            ) {</span>
+
+<span class="nc" id="L561">                Column {</span>
+
+<span class="nc" id="L563">                    Row(</span>
+<span class="nc" id="L564">                        verticalAlignment = Alignment.CenterVertically</span>
+                    ) {
+
+<span class="nc" id="L567">                        Icon(</span>
+<span class="nc" id="L568">                            Icons.Filled.ErrorOutline,</span>
+<span class="nc" id="L569">                            contentDescription = null,</span>
+<span class="nc" id="L570">                            tint = MaterialTheme.colorScheme.error,</span>
+<span class="nc" id="L571">                            modifier = Modifier.size(18.dp)</span>
+                        )
+
+<span class="nc" id="L574">                        Spacer(</span>
+<span class="nc" id="L575">                            modifier = Modifier.width(6.dp)</span>
+                        )
+
+<span class="nc" id="L578">                        Text(</span>
+<span class="nc bnc" id="L579" title="All 2 branches missed.">                            text = errorAdjunto.orEmpty(),</span>
+<span class="nc" id="L580">                            style = MaterialTheme.typography.bodySmall,</span>
+<span class="nc" id="L581">                            color = MaterialTheme.colorScheme.error</span>
+                        )
+<span class="nc" id="L583">                    }</span>
+
+                    // Permite continuar sin un adjunto incorrecto.
+<span class="nc" id="L586">                    TextButton(</span>
+<span class="nc bnc" id="L587" title="All 2 branches missed.">                        enabled = !enviando,</span>
+
+<span class="nc" id="L589">                        onClick = {</span>
+<span class="nc" id="L590">                            adjunto = null</span>
+<span class="nc" id="L591">                            errorAdjunto = null</span>
+<span class="nc" id="L592">                        }</span>
+                    ) {
+                        Text(&quot;Continuar sin PDF&quot;)
+                    }
+<span class="nc" id="L596">                }</span>
+<span class="nc" id="L597">            }</span>
+
+            // =============================================
+            // AUTORIZACIÓN CON FIRMA FÍSICA
+            // =============================================
+
+<span class="nc" id="L603">            Row(</span>
+<span class="nc" id="L604">                verticalAlignment = Alignment.CenterVertically</span>
+            ) {
+
+<span class="nc" id="L607">                Checkbox(</span>
+<span class="nc" id="L608">                    checked = requiereFirma,</span>
+
+<span class="nc" id="L610">                    onCheckedChange = {</span>
+<span class="nc" id="L611">                        requiereFirma = it</span>
+<span class="nc" id="L612">                    },</span>
+
+<span class="nc bnc" id="L614" title="All 2 branches missed.">                    enabled = !enviando</span>
+                )
+
+<span class="nc" id="L617">                Text(</span>
+<span class="nc" id="L618">                    &quot;Es una autorización que requiere firma física del apoderado&quot;</span>
+                )
+<span class="nc" id="L620">            }</span>
+
+            // Anima el aviso cuando se solicita firma física.
+<span class="nc" id="L623">            AnimatedVisibility(</span>
+<span class="nc" id="L624">                visible = requiereFirma,</span>
+
+<span class="nc" id="L626">                enter = fadeIn(tween(300)) +</span>
+<span class="nc" id="L627">                        expandVertically(tween(300)),</span>
+
+<span class="nc" id="L629">                exit = fadeOut(tween(250)) +</span>
+<span class="nc" id="L630">                        shrinkVertically(tween(250))</span>
+            ) {
+
+                AvisoCard(
+                    texto = &quot;Rol solo informativo: la app notifica por correo y avisa que la autorización &quot; +
+                            &quot;debe entregarse físicamente con firma manuscrita. No se capturan firmas en la app.&quot;,
+
+                    icono = Icons.Filled.Warning
+                )
+            }
+
+            // =============================================
+            // BOTÓN ENVIAR
+            // =============================================
+
+<span class="nc" id="L645">            Button(</span>
+<span class="nc bnc" id="L646" title="All 2 branches missed.">                enabled = !enviando,</span>
+
+<span class="nc" id="L648">                modifier = Modifier</span>
+<span class="nc" id="L649">                    .fillMaxWidth()</span>
+<span class="nc" id="L650">                    .padding(top = 8.dp),</span>
+
+                onClick = {
+
+<span class="nc" id="L654">                    intentoEnvio = true</span>
+
+                    // Valida los campos antes de confirmar.
+<span class="nc" id="L657">                    val hayErrores =</span>
+<span class="nc" id="L658">                        viewModel.validarComunicado(</span>
+<span class="nc" id="L659">                            asunto,</span>
+<span class="nc" id="L660">                            cuerpo,</span>
+<span class="nc" id="L661">                            tipo,</span>
+<span class="nc" id="L662">                            alcance,</span>
+<span class="nc" id="L663">                            destino</span>
+<span class="nc" id="L664">                        ).hayErrores</span>
+
+<span class="nc bnc" id="L666" title="All 4 branches missed.">                    if (hayErrores || errorAdjunto != null) {</span>
+
+                        // Regresa al inicio del formulario.
+<span class="nc" id="L669">                        alcanceScope.launch {</span>
+<span class="nc" id="L670">                            scroll.animateScrollTo(0)</span>
+<span class="nc" id="L671">                        }</span>
+
+                    } else if (
+<span class="nc bnc" id="L674" title="All 2 branches missed.">                        viewModel.necesitaPermisoNotificaciones() &amp;&amp;</span>
+<span class="nc bnc" id="L675" title="All 2 branches missed.">                        !permisoSolicitado</span>
+                    ) {
+
+<span class="nc" id="L678">                        permisoSolicitado = true</span>
+
+<span class="nc" id="L680">                        solicitudPermiso.launch(</span>
+<span class="nc" id="L681">                            Notificador.PERMISO</span>
+                        )
+
+                    } else {
+
+<span class="nc" id="L686">                        confirmando = true</span>
+                    }
+<span class="nc" id="L688">                }</span>
+            ) {
+
+                Icon(
+                    Icons.AutoMirrored.Filled.Send,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+
+                Spacer(
+                    modifier = Modifier.width(8.dp)
+                )
+
+                Text(&quot;Enviar&quot;)
+            }
+<span class="nc" id="L703">        }</span>
+<span class="nc" id="L704">    }</span>
+
+    // =====================================================
+    // CONFIRMACIÓN DEL ENVÍO
+    // =====================================================
+
+<span class="nc" id="L710">    val tipoElegido = tipo</span>
+<span class="nc" id="L711">    val alcanceElegido = alcance</span>
+
+    if (
+<span class="nc bnc" id="L714" title="All 2 branches missed.">        confirmando &amp;&amp;</span>
+<span class="nc bnc" id="L715" title="All 2 branches missed.">        tipoElegido != null &amp;&amp;</span>
+<span class="nc bnc" id="L716" title="All 2 branches missed.">        alcanceElegido != null</span>
+    ) {
+
+<span class="nc" id="L719">        AlertDialog(</span>
+<span class="nc" id="L720">            onDismissRequest = {</span>
+<span class="nc" id="L721">                confirmando = false</span>
+<span class="nc" id="L722">            },</span>
+
+            icon = {
+                Icon(
+                    Icons.AutoMirrored.Filled.Send,
+                    contentDescription = null
+                )
+            },
+
+            title = {
+                Text(&quot;¿Enviar comunicado?&quot;)
+            },
+
+<span class="nc" id="L735">            text = {</span>
+
+                // EV3: diferencia el modo local del remoto.
+<span class="nc bnc" id="L738" title="All 6 branches missed.">                val modo = if (modoLocal) {</span>
+
+<span class="nc" id="L740">                    &quot;despacho simulado local, sin envío real&quot;</span>
+
+                } else {
+
+<span class="nc" id="L744">                    &quot;despacho mediante servidor&quot;</span>
+                }
+
+<span class="nc" id="L747">                Text(</span>
+<span class="nc" id="L748">                    &quot;Se enviará a $cantidadDestinatarios apoderado(s) ($modo). &quot; +</span>
+                            &quot;Una vez enviado, el comunicado queda registrado en el historial y no se puede editar.&quot;
+<span class="nc" id="L750">                )</span>
+<span class="nc" id="L751">            },</span>
+
+<span class="nc" id="L753">            confirmButton = {</span>
+
+<span class="nc bnc" id="L755" title="All 4 branches missed.">                TextButton(</span>
+                    onClick = {
+
+<span class="nc" id="L758">                        confirmando = false</span>
+
+                        // Entrega el formulario al ViewModel.
+<span class="nc" id="L761">                        viewModel.enviarComunicado(</span>
+<span class="nc" id="L762">                            SolicitudComunicado(</span>
+<span class="nc" id="L763">                                asunto = asunto,</span>
+<span class="nc" id="L764">                                cuerpo = cuerpo,</span>
+<span class="nc" id="L765">                                tipo = tipoElegido,</span>
+<span class="nc" id="L766">                                alcance = alcanceElegido,</span>
+<span class="nc" id="L767">                                destino = destino,</span>
+<span class="nc" id="L768">                                adjunto = adjunto,</span>
+<span class="nc" id="L769">                                requiereFirmaFisica = requiereFirma</span>
+                            )
+                        )
+<span class="nc" id="L772">                    }</span>
+                ) {
+                    Text(&quot;Enviar&quot;)
+<span class="nc" id="L775">                }</span>
+<span class="nc" id="L776">            },</span>
+
+<span class="nc" id="L778">            dismissButton = {</span>
+
+<span class="nc bnc" id="L780" title="All 4 branches missed.">                TextButton(</span>
+<span class="nc" id="L781">                    onClick = {</span>
+<span class="nc" id="L782">                        confirmando = false</span>
+<span class="nc" id="L783">                    }</span>
+                ) {
+                    Text(&quot;Cancelar&quot;)
+<span class="nc" id="L786">                }</span>
+<span class="nc" id="L787">            }</span>
+        )
+    }
+
+    // =====================================================
+    // PROGRESO Y RESULTADO DEL ENVÍO
+    // =====================================================
+
+<span class="nc bnc" id="L795" title="All 2 branches missed.">    when (val estado = estadoEnvio) {</span>
+
+<span class="nc bnc" id="L797" title="All 2 branches missed.">        is EstadoEnvioUi.Enviando -&gt; {</span>
+
+            // Anima el avance del procesamiento.
+<span class="nc" id="L800">            val avance by animateFloatAsState(</span>
+<span class="nc bnc" id="L801" title="All 2 branches missed.">                targetValue = if (estado.total == 0) {</span>
+
+<span class="nc" id="L803">                    0f</span>
+
+                } else {
+
+<span class="nc" id="L807">                    (estado.procesados.toFloat() / estado.total)</span>
+<span class="nc" id="L808">                        .coerceIn(0f, 1f)</span>
+                },
+
+<span class="nc" id="L811">                animationSpec = tween(250),</span>
+<span class="nc" id="L812">                label = &quot;avanceEnvio&quot;</span>
+            )
+
+            // EV3: diferencia el despacho del registro final.
+<span class="nc" id="L816">            val registrando =</span>
+<span class="nc bnc" id="L817" title="All 2 branches missed.">                estado.total &gt; 0 &amp;&amp;</span>
+<span class="nc bnc" id="L818" title="All 2 branches missed.">                        estado.procesados &gt;= estado.total</span>
+
+<span class="nc" id="L820">            AlertDialog(</span>
+<span class="nc" id="L821">                onDismissRequest = {},</span>
+
+<span class="nc" id="L823">                title = {</span>
+
+<span class="nc bnc" id="L825" title="All 4 branches missed.">                    Text(</span>
+<span class="nc bnc" id="L826" title="All 2 branches missed.">                        if (registrando) {</span>
+
+<span class="nc" id="L828">                            &quot;Guardando comunicado…&quot;</span>
+
+                        } else {
+
+<span class="nc" id="L832">                            &quot;Enviando comunicado…&quot;</span>
+                        }
+<span class="nc" id="L834">                    )</span>
+<span class="nc" id="L835">                },</span>
+
+<span class="nc" id="L837">                text = {</span>
+
+<span class="nc bnc" id="L839" title="All 4 branches missed.">                    Column(</span>
+<span class="nc" id="L840">                        verticalArrangement = Arrangement.spacedBy(8.dp)</span>
+                    ) {
+
+<span class="nc bnc" id="L843" title="All 2 branches missed.">                        if (registrando) {</span>
+
+                            // Progreso indeterminado durante el guardado.
+<span class="nc" id="L846">                            LinearProgressIndicator(</span>
+<span class="nc" id="L847">                                modifier = Modifier.fillMaxWidth()</span>
+                            )
+
+<span class="nc" id="L850">                            Text(</span>
+<span class="nc bnc" id="L851" title="All 2 branches missed.">                                if (modoLocal) {</span>
+
+<span class="nc" id="L853">                                    &quot;Guardando en la base local…&quot;</span>
+
+                                } else {
+
+<span class="nc" id="L857">                                    &quot;Confirmando el registro…&quot;</span>
+                                }
+                            )
+
+<span class="nc" id="L861">                        } else {</span>
+
+                            // Progreso según destinatarios procesados.
+<span class="nc" id="L864">                            LinearProgressIndicator(</span>
+<span class="nc" id="L865">                                progress = { avance },</span>
+<span class="nc" id="L866">                                modifier = Modifier.fillMaxWidth()</span>
+                            )
+
+<span class="nc" id="L869">                            Text(</span>
+<span class="nc" id="L870">                                &quot;${estado.procesados} de ${estado.total} destinatario(s) procesados&quot;</span>
+                            )
+                        }
+<span class="nc" id="L873">                    }</span>
+<span class="nc" id="L874">                },</span>
+
+                confirmButton = {}
+            )
+        }
+
+        // =============================================
+        // ENVÍO FINALIZADO
+        // =============================================
+
+<span class="nc bnc" id="L884" title="All 2 branches missed.">        is EstadoEnvioUi.Listo -&gt; {</span>
+
+<span class="nc" id="L886">            val resumen = estado.resumen</span>
+
+<span class="nc" id="L888">            AlertDialog(</span>
+<span class="nc" id="L889">                onDismissRequest = {},</span>
+
+<span class="nc" id="L891">                icon = {</span>
+
+<span class="nc bnc" id="L893" title="All 4 branches missed.">                    Icon(</span>
+<span class="nc bnc" id="L894" title="All 2 branches missed.">                        imageVector = if (resumen.fallidos == 0) {</span>
+
+<span class="nc" id="L896">                            Icons.Filled.CheckCircle</span>
+
+                        } else {
+
+<span class="nc" id="L900">                            Icons.Filled.Warning</span>
+                        },
+
+<span class="nc" id="L903">                        contentDescription = null,</span>
+<span class="nc" id="L904">                        tint = MaterialTheme.colorScheme.primary</span>
+<span class="nc" id="L905">                    )</span>
+<span class="nc" id="L906">                },</span>
+
+                title = {
+                    Text(&quot;Comunicado enviado&quot;)
+                },
+
+<span class="nc" id="L912">                text = {</span>
+
+<span class="nc bnc" id="L914" title="All 4 branches missed.">                    Column(</span>
+<span class="nc" id="L915">                        verticalArrangement = Arrangement.spacedBy(8.dp)</span>
+                    ) {
+
+                        // Muestra los despachos correctos.
+<span class="nc" id="L919">                        Row(</span>
+<span class="nc" id="L920">                            verticalAlignment = Alignment.CenterVertically</span>
+                        ) {
+
+<span class="nc" id="L923">                            Icon(</span>
+<span class="nc" id="L924">                                Icons.Filled.CheckCircle,</span>
+<span class="nc" id="L925">                                contentDescription = null,</span>
+<span class="nc" id="L926">                                tint = MaterialTheme.colorScheme.primary</span>
+                            )
+
+<span class="nc" id="L929">                            Spacer(</span>
+<span class="nc" id="L930">                                modifier = Modifier.width(8.dp)</span>
+                            )
+
+<span class="nc" id="L933">                            Text(</span>
+<span class="nc" id="L934">                                &quot;${resumen.despachados} despachado(s)&quot;</span>
+                            )
+<span class="nc" id="L936">                        }</span>
+
+                        // Muestra los destinatarios fallidos.
+<span class="nc bnc" id="L939" title="All 2 branches missed.">                        if (resumen.fallidos &gt; 0) {</span>
+
+<span class="nc" id="L941">                            Row(</span>
+<span class="nc" id="L942">                                verticalAlignment = Alignment.CenterVertically</span>
+                            ) {
+
+<span class="nc" id="L945">                                Icon(</span>
+<span class="nc" id="L946">                                    Icons.Filled.Error,</span>
+<span class="nc" id="L947">                                    contentDescription = null,</span>
+<span class="nc" id="L948">                                    tint = MaterialTheme.colorScheme.error</span>
+                                )
+
+<span class="nc" id="L951">                                Spacer(</span>
+<span class="nc" id="L952">                                    modifier = Modifier.width(8.dp)</span>
+                                )
+
+<span class="nc" id="L955">                                Text(</span>
+<span class="nc" id="L956">                                    &quot;${resumen.fallidos} fallido(s): revisa el detalle en el historial&quot;</span>
+                                )
+<span class="nc" id="L958">                            }</span>
+                        }
+
+                        // Aclara que no se realizan envíos reales en modo local.
+<span class="nc bnc" id="L962" title="All 2 branches missed.">                        if (modoLocal) {</span>
+
+<span class="nc" id="L964">                            Text(</span>
+<span class="nc" id="L965">                                &quot;Despacho simulado. El comunicado quedó registrado localmente.&quot;,</span>
+
+<span class="nc" id="L967">                                style = MaterialTheme.typography.bodySmall</span>
+                            )
+                        }
+
+<span class="nc bnc" id="L971" title="All 2 branches missed.">                        if (resumen.requiereFirmaFisica) {</span>
+
+<span class="nc" id="L973">                            Text(</span>
+<span class="nc" id="L974">                                &quot;Recuerda: la autorización debe entregarse físicamente con firma manuscrita.&quot;,</span>
+
+<span class="nc" id="L976">                                style = MaterialTheme.typography.bodySmall</span>
+                            )
+                        }
+<span class="nc" id="L979">                    }</span>
+<span class="nc" id="L980">                },</span>
+
+<span class="nc" id="L982">                confirmButton = {</span>
+
+<span class="nc bnc" id="L984" title="All 4 branches missed.">                    TextButton(</span>
+                        onClick = {
+
+<span class="nc" id="L987">                            viewModel.reiniciarEnvio()</span>
+
+<span class="nc" id="L989">                            navController.popBackStack()</span>
+<span class="nc" id="L990">                        }</span>
+                    ) {
+                        Text(&quot;Aceptar&quot;)
+<span class="nc" id="L993">                    }</span>
+<span class="nc" id="L994">                }</span>
+            )
+        }
+
+        // =============================================
+        // CONTROL DE ERRORES
+        // =============================================
+
+<span class="nc bnc" id="L1002" title="All 2 branches missed.">        is EstadoEnvioUi.Error -&gt; {</span>
+
+<span class="nc" id="L1004">            AlertDialog(</span>
+                onDismissRequest = {
+<span class="nc" id="L1006">                    viewModel.reiniciarEnvio()</span>
+<span class="nc" id="L1007">                },</span>
+
+                icon = {
+
+                    Icon(
+                        Icons.Filled.ErrorOutline,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                },
+
+<span class="nc" id="L1018">                title = {</span>
+
+<span class="nc bnc" id="L1020" title="All 4 branches missed.">                    Text(</span>
+<span class="nc bnc" id="L1021" title="All 2 branches missed.">                        if (estado.puedeReintentar) {</span>
+
+<span class="nc" id="L1023">                            &quot;No se pudo registrar&quot;</span>
+
+                        } else {
+
+<span class="nc" id="L1027">                            &quot;No se pudo enviar&quot;</span>
+                        }
+<span class="nc" id="L1029">                    )</span>
+<span class="nc" id="L1030">                },</span>
+
+<span class="nc" id="L1032">                text = {</span>
+<span class="nc bnc" id="L1033" title="All 4 branches missed.">                    Text(estado.mensaje)</span>
+<span class="nc" id="L1034">                },</span>
+
+<span class="nc" id="L1036">                confirmButton = {</span>
+
+<span class="nc bnc" id="L1038" title="All 6 branches missed.">                    if (estado.puedeReintentar) {</span>
+
+                        // Reintenta guardar sin duplicar los despachos.
+<span class="nc" id="L1041">                        TextButton(</span>
+                            onClick = {
+<span class="nc" id="L1043">                                viewModel.reintentarRegistro()</span>
+<span class="nc" id="L1044">                            }</span>
+                        ) {
+                            Text(&quot;Reintentar&quot;)
+                        }
+
+<span class="nc" id="L1049">                    } else {</span>
+
+<span class="nc" id="L1051">                        TextButton(</span>
+                            onClick = {
+<span class="nc" id="L1053">                                viewModel.reiniciarEnvio()</span>
+<span class="nc" id="L1054">                            }</span>
+                        ) {
+                            Text(&quot;Aceptar&quot;)
+                        }
+<span class="nc" id="L1058">                    }</span>
+<span class="nc" id="L1059">                },</span>
+
+<span class="nc bnc" id="L1061" title="All 2 branches missed.">                dismissButton = if (estado.puedeReintentar) {</span>
+
+<span class="nc" id="L1063">                    {</span>
+
+<span class="nc bnc" id="L1065" title="All 4 branches missed.">                        TextButton(</span>
+                            onClick = {
+<span class="nc" id="L1067">                                viewModel.reiniciarEnvio()</span>
+<span class="nc" id="L1068">                            }</span>
+                        ) {
+                            Text(&quot;Descartar&quot;)
+<span class="nc" id="L1071">                        }</span>
+<span class="nc" id="L1072">                    }</span>
+
+                } else {
+
+<span class="nc" id="L1076">                    null</span>
+                }
+            )
+        }
+
+<span class="nc bnc" id="L1081" title="All 2 branches missed.">        EstadoEnvioUi.Inactivo -&gt; Unit</span>
+    }
+<span class="nc" id="L1083">}</span>
+
+// Convierte el tamaño del PDF a un formato fácil de leer.
+<span class="nc" id="L1086">private fun tamanoLegible(bytes: Long): String = when {</span>
+
+<span class="nc bnc" id="L1088" title="All 2 branches missed.">    bytes &gt;= 1024 * 1024 -&gt;</span>
+<span class="nc" id="L1089">        &quot;%.1f MB&quot;.format(bytes / (1024.0 * 1024.0))</span>
+
+<span class="nc bnc" id="L1091" title="All 2 branches missed.">    bytes &gt;= 1024 -&gt;</span>
+<span class="nc" id="L1092">        &quot;${bytes / 1024} KB&quot;</span>
+
+    else -&gt;
+<span class="nc" id="L1095">        &quot;$bytes B&quot;</span>
+<span class="nc" id="L1096">}</span>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

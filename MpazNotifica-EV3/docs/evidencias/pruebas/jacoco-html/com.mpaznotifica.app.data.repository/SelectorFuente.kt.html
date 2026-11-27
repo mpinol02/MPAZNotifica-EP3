@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SelectorFuente.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.data.repository</a> &gt; <span class="el_source">SelectorFuente.kt</span></div><h1>SelectorFuente.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.data.repository
+
+import com.mpaznotifica.app.data.remote.ApiResult
+import com.mpaznotifica.app.data.remote.ComunicacionRegistrada
+import com.mpaznotifica.app.data.remote.MensajeriaApi
+import com.mpaznotifica.app.data.remote.SesionRemota
+import com.mpaznotifica.app.model.Apoderado
+import com.mpaznotifica.app.model.CanalDespacho
+import com.mpaznotifica.app.model.Comunicacion
+import com.mpaznotifica.app.model.EnvioDestinatario
+import com.mpaznotifica.app.model.Usuario
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
+
+/**
+ * Selector de fuente: la ÚNICA interfaz de datos que ve el ViewModel. En cada operación consulta
+ * la preferencia ([PreferenciaModo.esLocal]) y delega en [local] o en [servidor]; los Flow que
+ * observan las pantallas cambian de base en caliente cuando cambia el modo (flatMapLatest).
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+<span class="fc" id="L22">class SelectorFuente(</span>
+<span class="fc" id="L23">    private val preferencia: PreferenciaModo,</span>
+<span class="fc" id="L24">    private val local: FuenteDatos,</span>
+<span class="fc" id="L25">    private val servidor: FuenteDatos</span>
+) : FuenteDatos {
+
+    /** Fuente que corresponde AHORA según la preferencia. */
+<span class="fc bfc" id="L29" title="All 2 branches covered.">    fun actual(): FuenteDatos = if (preferencia.esLocal()) local else servidor</span>
+
+<span class="fc" id="L31">    override val esLocal: Boolean get() = preferencia.esLocal()</span>
+
+    private fun &lt;T&gt; observar(leer: (FuenteDatos) -&gt; Flow&lt;T&gt;): Flow&lt;T&gt; =
+<span class="fc" id="L34">        preferencia.modoLocal.flatMapLatest { enLocal -&gt; leer(if (enLocal) local else servidor) }</span>
+
+<span class="fc" id="L36">    override val usuarios: Flow&lt;List&lt;Usuario&gt;&gt; = observar { it.usuarios }</span>
+<span class="fc" id="L37">    override val talleres = observar { it.talleres }</span>
+<span class="fc" id="L38">    override val estudiantes = observar { it.estudiantes }</span>
+<span class="fc" id="L39">    override val apoderados = observar { it.apoderados }</span>
+<span class="fc" id="L40">    override val comunicaciones: Flow&lt;List&lt;Comunicacion&gt;&gt; = observar { it.comunicaciones }</span>
+<span class="fc" id="L41">    override val envios: Flow&lt;List&lt;EnvioDestinatario&gt;&gt; = observar { it.envios }</span>
+
+<span class="fc" id="L43">    override fun mensajeria(): MensajeriaApi = actual().mensajeria()</span>
+
+    /** Deja listas las dos bases (la local y la caché del servidor) para poder cambiar de modo sin esperas. */
+    override suspend fun asegurarDatosIniciales() {
+<span class="fc" id="L47">        local.asegurarDatosIniciales()</span>
+<span class="fc" id="L48">        servidor.asegurarDatosIniciales()</span>
+<span class="fc" id="L49">    }</span>
+
+<span class="fc" id="L51">    override suspend fun buscarUsuario(correo: String): Usuario? = actual().buscarUsuario(correo)</span>
+
+    override suspend fun iniciarSesion(usuario: String, clave: String): ApiResult&lt;SesionRemota&gt; =
+<span class="fc" id="L54">        actual().iniciarSesion(usuario, clave)</span>
+
+<span class="fc" id="L56">    override suspend fun cerrarSesion(token: String) = actual().cerrarSesion(token)</span>
+
+<span class="fc" id="L58">    override suspend fun sincronizar(): ApiResult&lt;Unit&gt; = actual().sincronizar()</span>
+
+    override suspend fun registrarEnvio(
+        comunicacion: Comunicacion,
+        destino: String?,
+        envios: List&lt;EnvioDestinatario&gt;
+<span class="fc" id="L64">    ): ApiResult&lt;ComunicacionRegistrada&gt; = actual().registrarEnvio(comunicacion, destino, envios)</span>
+
+    override suspend fun actualizarCanalPreferente(
+        actor: Usuario?,
+        apoderadoId: String,
+        canal: CanalDespacho
+<span class="fc" id="L70">    ): ApiResult&lt;Apoderado&gt; = actual().actualizarCanalPreferente(actor, apoderadoId, canal)</span>
+
+<span class="fc" id="L72">    override suspend fun restablecer(): ApiResult&lt;Unit&gt; = actual().restablecer()</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

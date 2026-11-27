@@ -1,0 +1,280 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+app,com.mpaznotifica.app.viewmodel,MpazNotificaViewModel.historial.new Function3() {...},25,0,2,0,5,0,2,0,1,0
+app,com.mpaznotifica.app.viewmodel,MpazNotificaViewModel,1496,0,88,0,367,0,103,0,59,0
+app,com.mpaznotifica.app.viewmodel,MpazNotificaViewModel.restablecerDatosLocales.new Function2() {...},43,0,4,0,12,0,3,0,1,0
+app,com.mpaznotifica.app.viewmodel,MpazNotificaViewModel.datos.new Function4() {...},51,0,2,0,10,0,2,0,1,0
+app,com.mpaznotifica.app.viewmodel,MpazNotificaViewModel.resumenes.new Function3() {...},51,0,4,0,9,0,3,0,1,0
+app,com.mpaznotifica.app.viewmodel,MpazNotificaViewModel.PendienteRegistro,27,0,0,0,4,0,4,0,4,0
+app,com.mpaznotifica.app.viewmodel,MpazNotificaViewModel.probarServidor.new Function2() {...},57,0,4,0,13,0,3,0,1,0
+app,com.mpaznotifica.app.viewmodel,MpazNotificaViewModel.logout.new Function2() {...},13,0,0,0,2,0,1,0,1,0
+app,com.mpaznotifica.app.viewmodel,MpazNotificaViewModel.new Function2() {...},12,0,0,0,2,0,1,0,1,0
+app,com.mpaznotifica.app.viewmodel,MpazNotificaViewModel.iniciarSesion.new Function2() {...},147,0,10,0,39,0,6,0,1,0
+app,com.mpaznotifica.app.viewmodel,MpazNotificaViewModel.special..inlined.map.new Flow() {...},14,0,0,0,3,0,2,0,2,0
+app,com.mpaznotifica.app.viewmodel,MpazNotificaViewModel.special..inlined.map.1.new FlowCollector() {...},10,0,0,0,1,0,1,0,1,0
+app,com.mpaznotifica.app.viewmodel,MpazNotificaViewModel.enviarComunicado.new Function2() {...},178,0,8,0,53,0,6,0,2,0
+app,com.mpaznotifica.app.viewmodel,MpazNotificaViewModel.cambiarModo.new Function2() {...},12,0,0,0,2,0,1,0,1,0
+app,com.mpaznotifica.app.viewmodel,MpazNotificaViewModel.sincronizar.new Function2() {...},72,0,6,0,18,0,4,0,1,0
+app,com.mpaznotifica.app.viewmodel,MpazNotificaViewModel.actualizarCanalPreferente.new Function2() {...},85,0,6,0,26,0,4,0,1,0
+app,com.mpaznotifica.app.viewmodel,MpazNotificaViewModel.reintentarRegistro.new Function2() {...},28,0,0,0,10,0,1,0,1,0
+app,com.mpaznotifica.app,MainActivity,130,0,12,0,24,0,13,0,7,0
+app,com.mpaznotifica.app,MainActivity.onCreate.new Function2() {...},32,0,4,0,3,0,3,0,1,0
+app,com.mpaznotifica.app,MainActivity.onCreate.1.1.new Function2() {...},62,0,4,0,7,0,4,0,2,0
+app,com.mpaznotifica.app,MainActivity.onCreate.1.new Function2() {...},42,0,4,0,5,0,3,0,1,0
+app,com.mpaznotifica.app.ui.theme,ThemeKt,358,0,44,0,44,0,25,0,3,0
+app,com.mpaznotifica.app.domain,DatosReferencia,35,86,4,0,1,9,3,7,1,7
+app,com.mpaznotifica.app.domain,ReglasHistorial,2,337,6,91,0,48,6,47,0,4
+app,com.mpaznotifica.app.domain,ReglasHistorial.aplicar..inlined.sortedByDescending.new Comparator() {...},0,15,0,0,0,1,0,1,0,1
+app,com.mpaznotifica.app.domain,FiltrosHistorial,0,90,0,2,0,8,0,8,0,7
+app,com.mpaznotifica.app.domain,ReglasComunicado,19,678,15,120,6,171,15,71,0,13
+app,com.mpaznotifica.app.domain,Credenciales,0,118,0,8,0,15,0,9,0,5
+app,com.mpaznotifica.app.domain,ValidadorContacto,2,120,1,5,1,17,1,10,0,8
+app,com.mpaznotifica.app.domain,Fechas,6,159,2,6,2,30,2,7,0,5
+app,com.mpaznotifica.app.ui.components,BarraSuperiorKt,117,0,6,0,13,0,4,0,1,0
+app,com.mpaznotifica.app.ui.components,ElementosKt.EtiquetaInfo.new Function2() {...},96,0,4,0,16,0,3,0,1,0
+app,com.mpaznotifica.app.ui.components,DialogoServidorKt.DialogoServidor.new Function2() {...},31,0,4,0,1,0,3,0,1,0
+app,com.mpaznotifica.app.ui.components,DialogoServidorKt.DialogoServidor.new Function2() {...},430,0,18,0,40,0,14,0,5,0
+app,com.mpaznotifica.app.ui.components,FranjaModoKt.FranjaModo.new Function2() {...},112,0,8,0,16,0,5,0,1,0
+app,com.mpaznotifica.app.ui.components,DialogoServidorKt.DialogoServidor.new Function2() {...},62,0,8,0,5,0,6,0,2,0
+app,com.mpaznotifica.app.ui.components,BarraSuperiorKt.BarraSuperior.new Function3() {...},51,0,6,0,7,0,4,0,1,0
+app,com.mpaznotifica.app.ui.components,DialogoServidorKt.DialogoServidor.lambda.10..inlined.onDispose.new DisposableEffectResult() {...},10,0,0,0,3,0,2,0,2,0
+app,com.mpaznotifica.app.ui.components,FranjaModoKt.InterruptorModoLocal.new Function2() {...},59,0,4,0,1,0,4,0,2,0
+app,com.mpaznotifica.app.ui.components,FranjaModoKt.InterruptorModoLocal.new Function2() {...},63,0,4,0,5,0,5,0,3,0
+app,com.mpaznotifica.app.ui.components,SelectorDesplegableKt.SelectorDesplegable.3.new Function3() {...},77,0,4,0,9,0,4,0,2,0
+app,com.mpaznotifica.app.ui.components,SelectorDesplegableKt.SelectorDesplegable.3.5.1.new Function2() {...},42,0,4,0,2,0,3,0,1,0
+app,com.mpaznotifica.app.ui.components,DialogoServidorKt,258,0,4,0,15,0,12,0,10,0
+app,com.mpaznotifica.app.ui.components,FranjaModoKt,702,0,24,0,49,0,24,0,12,0
+app,com.mpaznotifica.app.ui.components,ElementosKt.apoyo.new Function2() {...},38,0,4,0,2,0,3,0,1,0
+app,com.mpaznotifica.app.ui.components,DialogoServidorKt.DialogoServidor.4.1.new Function2() {...},42,0,6,0,1,0,4,0,1,0
+app,com.mpaznotifica.app.ui.components,SelectorDesplegableKt.SelectorDesplegable.3.new Function2() {...},38,0,4,0,2,0,3,0,1,0
+app,com.mpaznotifica.app.ui.components,SelectorDesplegableKt.SelectorDesplegable.3.new Function2() {...},33,0,8,0,4,0,5,0,1,0
+app,com.mpaznotifica.app.ui.components,ElementosKt.AvisoCard.new Function3() {...},86,0,4,0,12,0,3,0,1,0
+app,com.mpaznotifica.app.ui.components,SelectorDesplegableKt,280,0,34,0,20,0,21,0,4,0
+app,com.mpaznotifica.app.ui.components,BarraSuperiorKt.BarraSuperior.new Function2() {...},38,0,4,0,1,0,3,0,1,0
+app,com.mpaznotifica.app.ui.components,BarraSuperiorKt.BarraSuperior.new Function2() {...},39,0,6,0,4,0,5,0,2,0
+app,com.mpaznotifica.app.ui.components,ElementosKt,1205,0,141,0,113,0,77,0,6,0
+app,com.mpaznotifica.app.ui.components,SelectorDesplegableKt.SelectorDesplegable.1.new Function2() {...},21,0,4,0,4,0,3,0,1,0
+app,com.mpaznotifica.app.ui.components,SelectorDesplegableKt.SelectorDesplegable.new Function3() {...},216,0,16,0,25,0,11,0,3,0
+app,com.mpaznotifica.app.navigation,AppNavigationKt.AppNavigation.4.1.5.new Function4() {...},17,0,0,0,4,0,1,0,1,0
+app,com.mpaznotifica.app.navigation,AppNavigationKt.AppNavigation.4.1.5.new Function4() {...},27,0,2,0,6,0,2,0,1,0
+app,com.mpaznotifica.app.navigation,AppNavigationKt.AppNavigation.4.1.5.new Function4() {...},17,0,0,0,4,0,1,0,1,0
+app,com.mpaznotifica.app.navigation,AppNavigationKt.AppNavigation.4.1.5.new Function4() {...},24,0,0,0,6,0,2,0,2,0
+app,com.mpaznotifica.app.navigation,AppNavigationKt.AppNavigation.4.1.5.new Function4() {...},17,0,0,0,4,0,1,0,1,0
+app,com.mpaznotifica.app.navigation,AppNavigationKt.AppNavigation.4.1.5.new Function4() {...},41,0,0,0,9,0,4,0,4,0
+app,com.mpaznotifica.app.navigation,AppNavigationKt,567,0,42,0,53,0,33,0,12,0
+app,com.mpaznotifica.app.navigation,AppNavigationKt.AppNavigation.new Function2() {...},46,0,8,0,10,0,7,0,3,0
+app,com.mpaznotifica.app.navigation,AppNavigationKt.AppNavigation.new Function2() {...},68,0,12,0,15,0,9,0,3,0
+app,com.mpaznotifica.app.navigation,Rutas,7,0,0,0,1,0,1,0,1,0
+app,com.mpaznotifica.app.data,MockData,0,496,0,4,0,65,0,11,0,9
+app,com.mpaznotifica.app.ui.screen.comunicados,DetalleComunicadoScreenKt.DetalleComunicadoScreen.2.2.new Function2() {...},38,0,4,0,2,0,3,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,DetalleComunicadoScreenKt.DetalleComunicadoScreen.2.2.new Function2() {...},62,0,4,0,6,0,4,0,2,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.HistorialScreen.3.1.6.new Function0() {...},14,0,0,0,1,0,1,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,RedactarComunicadoScreenKt.RedactarComunicadoScreen.4.1.new Function3() {...},80,0,2,0,11,0,4,0,3,0
+app,com.mpaznotifica.app.ui.screen.comunicados,RedactarComunicadoScreenKt.RedactarComunicadoScreen.4.1.new Function3() {...},52,0,2,0,8,0,2,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.HistorialScreen.3.1.new Function3() {...},39,0,4,0,6,0,4,0,2,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.HistorialScreen.3.1.new Function3() {...},136,0,6,0,10,0,5,0,2,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.HistorialScreen.3.1.new Function3() {...},96,0,4,0,7,0,3,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.HistorialScreen.3.1.new Function3() {...},34,0,6,0,8,0,4,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.CampoFecha.6.new Function2() {...},26,0,4,0,2,0,3,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,DetalleComunicadoScreenKt.DetalleComunicadoScreen.2.1.new Function3() {...},366,0,16,0,44,0,10,0,2,0
+app,com.mpaznotifica.app.ui.screen.comunicados,RedactarComunicadoScreenKt.RedactarComunicadoScreen.4.1.14.new Function2() {...},15,0,0,0,2,0,1,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.HistorialScreen.3.1.2.1.new Function3() {...},65,0,6,0,4,0,4,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.CampoFecha.3.new Function2() {...},26,0,4,0,2,0,3,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,DetalleComunicadoScreenKt.FilaEnvio.new Function3() {...},226,0,14,0,28,0,8,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,DetalleComunicadoScreenKt,366,0,26,0,30,0,20,0,7,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.DialogoFecha.new Function2() {...},110,0,8,0,8,0,6,0,2,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.DialogoFecha.new Function3() {...},30,0,4,0,2,0,3,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.DialogoFecha.new Function2() {...},31,0,4,0,1,0,3,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,DetalleComunicadoScreenKt.DetalleComunicadoScreen.new Function2() {...},23,0,4,0,5,0,3,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,DetalleComunicadoScreenKt.DetalleComunicadoScreen.new Function3() {...},470,0,18,0,64,0,11,0,2,0
+app,com.mpaznotifica.app.ui.screen.comunicados,RedactarComunicadoScreenKt.RedactarComunicadoScreen.new Function2() {...},40,0,4,0,2,0,3,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,RedactarComunicadoScreenKt,1237,0,32,0,119,0,60,0,44,0
+app,com.mpaznotifica.app.ui.screen.comunicados,RedactarComunicadoScreenKt.RedactarComunicadoScreen.new Function2() {...},85,0,6,0,10,0,6,0,3,0
+app,com.mpaznotifica.app.ui.screen.comunicados,RedactarComunicadoScreenKt.RedactarComunicadoScreen.new Function2() {...},44,0,6,0,6,0,4,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.HistorialScreen.3.invoke.lambda.2..inlined.items.default.new Function4() {...},71,0,16,0,2,0,9,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.HistorialScreen.3.invoke.lambda.2..inlined.items.default.new Function1() {...},8,0,0,0,1,0,1,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,RedactarComunicadoScreenKt.RedactarComunicadoScreen.new Function2() {...},47,0,4,0,6,0,4,0,2,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.TarjetaComunicado.new Function3() {...},338,0,16,0,40,0,9,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,RedactarComunicadoScreenKt.RedactarComunicadoScreen.new Function2() {...},42,0,6,0,6,0,4,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,RedactarComunicadoScreenKt.RedactarComunicadoScreen.new Function2() {...},176,0,8,0,17,0,6,0,2,0
+app,com.mpaznotifica.app.ui.screen.comunicados,RedactarComunicadoScreenKt.RedactarComunicadoScreen.new Function2() {...},39,0,4,0,5,0,4,0,2,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.HistorialScreen.3.invoke.lambda.2..inlined.items.default.new Function1() {...},8,0,0,0,1,0,1,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,RedactarComunicadoScreenKt.RedactarComunicadoScreen.new Function2() {...},35,0,6,0,8,0,4,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.HistorialScreen.3.invoke.lambda.2..inlined.items.default.new Function1() {...},2,0,0,0,1,0,1,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,RedactarComunicadoScreenKt.RedactarComunicadoScreen.new Function2() {...},234,0,10,0,35,0,6,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.CampoFecha.1.new Function2() {...},18,0,0,0,2,0,1,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.HistorialScreen.3.1.3.1.new Function3() {...},411,0,28,0,42,0,24,0,10,0
+app,com.mpaznotifica.app.ui.screen.comunicados,RedactarComunicadoScreenKt.RedactarComunicadoScreen.4.1.new Function3() {...},173,0,4,0,23,0,4,0,2,0
+app,com.mpaznotifica.app.ui.screen.comunicados,RedactarComunicadoScreenKt.RedactarComunicadoScreen.4.1.new Function3() {...},162,0,6,0,22,0,5,0,2,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.CampoFecha.new Function2() {...},36,0,4,0,3,0,3,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.CampoFecha.new Function2() {...},38,0,4,0,1,0,3,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.CampoFecha.new Function2() {...},36,0,4,0,3,0,3,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.HistorialScreen.3.1.3.new Function3() {...},40,0,0,0,2,0,1,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.CampoFecha.1.1.new FlowCollector() {...},10,0,2,0,2,0,2,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,CampoFechaFiltro,21,0,0,0,1,0,2,0,2,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.HistorialScreen.new Function2() {...},17,0,2,0,1,0,2,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.HistorialScreen.new Function2() {...},23,0,4,0,1,0,3,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt.HistorialScreen.new Function3() {...},206,0,10,0,14,0,8,0,3,0
+app,com.mpaznotifica.app.ui.screen.comunicados,RedactarComunicadoScreenKt.RedactarComunicadoScreen.new Function2() {...},91,0,4,0,14,0,4,0,2,0
+app,com.mpaznotifica.app.ui.screen.comunicados,RedactarComunicadoScreenKt.RedactarComunicadoScreen.new Function2() {...},48,0,6,0,7,0,4,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,RedactarComunicadoScreenKt.RedactarComunicadoScreen.new Function2() {...},62,0,4,0,6,0,4,0,2,0
+app,com.mpaznotifica.app.ui.screen.comunicados,RedactarComunicadoScreenKt.RedactarComunicadoScreen.new Function2() {...},33,0,6,0,7,0,4,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,RedactarComunicadoScreenKt.RedactarComunicadoScreen.new Function2() {...},17,0,2,0,3,0,2,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,RedactarComunicadoScreenKt.RedactarComunicadoScreen.new Function3() {...},1157,0,64,0,139,0,42,0,10,0
+app,com.mpaznotifica.app.ui.screen.comunicados,RedactarComunicadoScreenKt.RedactarComunicadoScreen.new Function2() {...},23,0,4,0,5,0,3,0,1,0
+app,com.mpaznotifica.app.ui.screen.comunicados,HistorialScreenKt,1016,0,110,0,56,0,75,0,20,0
+app,com.mpaznotifica.app.data.repository,RoomCache,6,271,0,8,3,35,0,18,0,14
+app,com.mpaznotifica.app.data.repository,ResolucionModo,0,17,1,5,0,5,1,3,0,1
+app,com.mpaznotifica.app.data.repository,RoomCache.restablecer.2.new Function1() {...},0,112,0,0,0,9,0,1,0,1
+app,com.mpaznotifica.app.data.repository,ReferenciaRemota,0,39,0,0,0,5,0,5,0,5
+app,com.mpaznotifica.app.data.repository,SelectorFuente,0,201,0,2,0,24,0,26,0,25
+app,com.mpaznotifica.app.data.repository,RoomCache.guardarRegistro.new Function1() {...},0,34,0,0,0,3,0,1,0,1
+app,com.mpaznotifica.app.data.repository,MpazRepository.special..inlined.map.new Flow() {...},2,12,0,0,1,2,0,2,0,2
+app,com.mpaznotifica.app.data.repository,ModoEnMemoria,0,28,0,0,0,6,0,4,0,4
+app,com.mpaznotifica.app.data.repository,MpazRepository.special..inlined.map.new Flow() {...},2,12,0,0,1,2,0,2,0,2
+app,com.mpaznotifica.app.data.repository,MpazRepository.special..inlined.map.new Flow() {...},2,12,0,0,1,2,0,2,0,2
+app,com.mpaznotifica.app.data.repository,MpazRepository.special..inlined.map.new Flow() {...},2,12,0,0,1,2,0,2,0,2
+app,com.mpaznotifica.app.data.repository,MpazRepository.special..inlined.map.1.new FlowCollector() {...},3,7,0,0,0,1,0,1,0,1
+app,com.mpaznotifica.app.data.repository,FuenteLocal,5,792,3,47,2,102,3,42,0,20
+app,com.mpaznotifica.app.data.repository,MpazRepository.estudiantes.new Function3() {...},5,63,1,1,0,9,1,1,0,1
+app,com.mpaznotifica.app.data.repository,FuenteServidor,103,0,0,0,19,0,17,0,17,0
+app,com.mpaznotifica.app.data.repository,RoomCache.special..inlined.map.4.new FlowCollector() {...},3,7,0,0,0,1,0,1,0,1
+app,com.mpaznotifica.app.data.repository,MpazRepository.special..inlined.map.2.new FlowCollector() {...},3,7,0,0,0,1,0,1,0,1
+app,com.mpaznotifica.app.data.repository,EstudianteRemoto,0,21,0,0,0,1,0,3,0,3
+app,com.mpaznotifica.app.data.repository,RoomCache.apoderados.new Function3() {...},5,43,1,1,0,4,1,1,0,1
+app,com.mpaznotifica.app.data.repository,MpazRepository,93,261,2,10,6,35,8,17,7,12
+app,com.mpaznotifica.app.data.repository,RoomCache.estudiantes.new Function3() {...},5,63,1,1,0,9,1,1,0,1
+app,com.mpaznotifica.app.data.repository,RoomCache.reemplazarBitacora.new Function1() {...},0,90,0,0,0,8,0,1,0,1
+app,com.mpaznotifica.app.data.repository,MpazRepository.special..inlined.map.3.new FlowCollector() {...},3,7,0,0,0,1,0,1,0,1
+app,com.mpaznotifica.app.data.repository,RoomCache.special..inlined.map.2.new FlowCollector() {...},3,7,0,0,0,1,0,1,0,1
+app,com.mpaznotifica.app.data.repository,PreferenciasModo,0,80,0,4,0,12,0,6,0,4
+app,com.mpaznotifica.app.data.repository,SelectorFuente.observar..inlined.flatMapLatest.new Function3() {...},0,30,0,0,0,2,0,1,0,1
+app,com.mpaznotifica.app.data.repository,MpazRepository.special..inlined.map.4.new FlowCollector() {...},3,7,0,0,0,1,0,1,0,1
+app,com.mpaznotifica.app.data.repository,MpazRepository.asegurarDatosIniciales.2.new Function1() {...},0,185,0,0,0,12,0,1,0,1
+app,com.mpaznotifica.app.data.repository,RoomCache.special..inlined.map.3.new FlowCollector() {...},3,7,0,0,0,1,0,1,0,1
+app,com.mpaznotifica.app.data.repository,RoomCache.guardarReferencia.new Function1() {...},0,227,0,4,0,17,0,3,0,1
+app,com.mpaznotifica.app.data.repository,MpazRepository.apoderados.new Function3() {...},5,43,1,1,0,4,1,1,0,1
+app,com.mpaznotifica.app.data.repository,RoomCache.special..inlined.map.new Flow() {...},2,12,0,0,1,2,0,2,0,2
+app,com.mpaznotifica.app.data.repository,RoomCache.special..inlined.map.new Flow() {...},2,12,0,0,1,2,0,2,0,2
+app,com.mpaznotifica.app.data.repository,RoomCache.special..inlined.map.new Flow() {...},2,12,0,0,1,2,0,2,0,2
+app,com.mpaznotifica.app.data.repository,RoomCache.special..inlined.map.new Flow() {...},2,12,0,0,1,2,0,2,0,2
+app,com.mpaznotifica.app.data.repository,RoomCache.asegurarDatosIniciales.2.new Function1() {...},0,185,0,0,0,12,0,1,0,1
+app,com.mpaznotifica.app.data.repository,RoomCache.special..inlined.map.1.new FlowCollector() {...},3,7,0,0,0,1,0,1,0,1
+app,com.mpaznotifica.app.data.repository,MpazRepository.registrarEnvio.new Function1() {...},0,34,0,0,0,3,0,1,0,1
+app,com.mpaznotifica.app.nativo,Notificador,189,0,14,0,62,0,12,0,5,0
+app,com.mpaznotifica.app.nativo,Vibracion,111,0,16,0,15,0,11,0,3,0
+app,com.mpaznotifica.app.nativo,ArchivosPdf.guardarCopia.new Function2() {...},124,0,6,0,25,0,4,0,1,0
+app,com.mpaznotifica.app.nativo,ArchivosPdf.Inspeccion,15,0,0,0,3,0,3,0,3,0
+app,com.mpaznotifica.app.nativo,ArchivosPdf,296,0,22,0,87,0,16,0,5,0
+app,com.mpaznotifica.app.nativo,EstadoRed,41,0,8,0,5,0,5,0,1,0
+app,com.mpaznotifica.app.data.local,TallerEntity,0,21,0,0,0,3,0,3,0,3
+app,com.mpaznotifica.app.data.local,ComunicacionEntity,0,93,0,0,0,12,0,12,0,12
+app,com.mpaznotifica.app.data.local,UsuarioEntity,0,54,0,0,0,7,0,7,0,7
+app,com.mpaznotifica.app.data.local,EnvioEntity,0,57,0,0,0,7,0,7,0,7
+app,com.mpaznotifica.app.data.local,AppDatabase.ProteccionBitacora,10,0,0,0,3,0,1,0,1,0
+app,com.mpaznotifica.app.data.local,EstudianteTallerEntity,0,21,0,0,0,3,0,3,0,3
+app,com.mpaznotifica.app.data.local,ApoderadoEntity,0,48,0,0,0,6,0,6,0,6
+app,com.mpaznotifica.app.data.local,AppDatabase.Companion,55,44,0,4,10,9,3,4,3,2
+app,com.mpaznotifica.app.data.local,AppDatabase,0,27,0,0,0,4,0,2,0,2
+app,com.mpaznotifica.app.data.local,MapeosKt,0,184,0,0,0,46,0,8,0,8
+app,com.mpaznotifica.app.data.local,EstudianteEntity,0,39,0,0,0,5,0,5,0,5
+app,com.mpaznotifica.app.model,CanalDespacho,0,41,0,0,0,5,0,4,0,4
+app,com.mpaznotifica.app.model,Taller,0,21,0,0,0,3,0,3,0,3
+app,com.mpaznotifica.app.model,Perfil,5,29,0,0,1,3,2,2,2,2
+app,com.mpaznotifica.app.model,PruebaServidor.Correcta,12,0,0,0,1,0,2,0,2,0
+app,com.mpaznotifica.app.model,EstadoEnvioUi.Enviando,15,0,0,0,1,0,3,0,3,0
+app,com.mpaznotifica.app.model,EstadoEnvio,5,29,0,0,1,3,2,2,2,2
+app,com.mpaznotifica.app.model,ErroresLogin,15,25,1,3,1,4,2,5,1,4
+app,com.mpaznotifica.app.model,Estudiante,0,51,0,0,0,6,0,6,0,6
+app,com.mpaznotifica.app.model,Apoderado,19,57,0,0,1,7,1,7,1,7
+app,com.mpaznotifica.app.model,ResumenEnvio.Companion,10,39,0,4,0,5,1,3,1,1
+app,com.mpaznotifica.app.model,EstadoDatos.Error,12,0,0,0,1,0,2,0,2,0
+app,com.mpaznotifica.app.model,AlcanceEnvio,3,45,0,0,0,6,1,3,1,3
+app,com.mpaznotifica.app.model,EstadoDatos.SinConexion,12,0,0,0,1,0,2,0,2,0
+app,com.mpaznotifica.app.model,ErroresComunicado,6,100,0,2,0,8,0,9,0,8
+app,com.mpaznotifica.app.model,Usuario,0,68,0,0,0,8,0,8,0,8
+app,com.mpaznotifica.app.model,EstadoDatos.Actualizado,12,0,0,0,1,0,2,0,2,0
+app,com.mpaznotifica.app.model,PruebaServidor.Fallida,12,0,0,0,1,0,2,0,2,0
+app,com.mpaznotifica.app.model,Destinatario,0,21,0,0,0,3,0,3,0,3
+app,com.mpaznotifica.app.model,Comunicacion,0,122,0,0,0,13,0,13,0,13
+app,com.mpaznotifica.app.model,SolicitudComunicado,57,0,0,0,8,0,8,0,8,0
+app,com.mpaznotifica.app.model,EstadoEnvioUi.Error,28,0,0,0,1,0,4,0,4,0
+app,com.mpaznotifica.app.model,EnvioDestinatario,0,71,0,0,0,8,0,8,0,8
+app,com.mpaznotifica.app.model,ResumenEnvio,11,27,0,0,1,5,1,5,1,5
+app,com.mpaznotifica.app.model,TipoComunicacion,3,66,0,0,0,9,1,3,1,3
+app,com.mpaznotifica.app.model,EstadoEnvioUi.Listo,12,0,0,0,1,0,2,0,2,0
+app,com.mpaznotifica.app.model,AdjuntoPdf,27,0,0,0,4,0,4,0,4,0
+app,com.mpaznotifica.app.ui.screen.apoderados,ApoderadosScreenKt.ApoderadosScreen.2.new FlowCollector() {...},12,0,0,0,1,0,1,0,1,0
+app,com.mpaznotifica.app.ui.screen.apoderados,ApoderadosScreenKt.ApoderadosScreen.5.1.new Function3() {...},39,0,4,0,6,0,4,0,2,0
+app,com.mpaznotifica.app.ui.screen.apoderados,ApoderadosScreenKt.ApoderadosScreen.new Function2() {...},17,0,2,0,1,0,2,0,1,0
+app,com.mpaznotifica.app.ui.screen.apoderados,ApoderadosScreenKt.ApoderadosScreen.new Function2() {...},20,0,0,0,1,0,1,0,1,0
+app,com.mpaznotifica.app.ui.screen.apoderados,ApoderadosScreenKt.ApoderadosScreen.new Function2() {...},28,0,6,0,2,0,4,0,1,0
+app,com.mpaznotifica.app.ui.screen.apoderados,ApoderadosScreenKt.ApoderadosScreen.new Function2() {...},23,0,4,0,1,0,3,0,1,0
+app,com.mpaznotifica.app.ui.screen.apoderados,ApoderadosScreenKt.ApoderadosScreen.new Function3() {...},143,0,12,0,14,0,9,0,3,0
+app,com.mpaznotifica.app.ui.screen.apoderados,ApoderadosScreenKt.TarjetaApoderado.1.1.new Function2() {...},26,0,4,0,1,0,3,0,1,0
+app,com.mpaznotifica.app.ui.screen.apoderados,ApoderadosScreenKt.ApoderadosScreen.5.1.3.new Function1() {...},11,0,0,0,1,0,1,0,1,0
+app,com.mpaznotifica.app.ui.screen.apoderados,ApoderadosScreenKt.TarjetaApoderado.new Function3() {...},378,0,18,0,33,0,13,0,4,0
+app,com.mpaznotifica.app.ui.screen.apoderados,ApoderadosScreenKt.ApoderadosScreen.5.invoke.lambda.2..inlined.items.default.new Function1() {...},2,0,0,0,1,0,1,0,1,0
+app,com.mpaznotifica.app.ui.screen.apoderados,ApoderadosScreenKt.ApoderadosScreen.5.invoke.lambda.2..inlined.items.default.new Function4() {...},71,0,16,0,2,0,9,0,1,0
+app,com.mpaznotifica.app.ui.screen.apoderados,ApoderadosScreenKt.ApoderadosScreen.5.invoke.lambda.2..inlined.items.default.new Function1() {...},8,0,0,0,1,0,1,0,1,0
+app,com.mpaznotifica.app.ui.screen.apoderados,ApoderadosScreenKt.ApoderadosScreen.5.invoke.lambda.2..inlined.items.default.new Function1() {...},8,0,0,0,1,0,1,0,1,0
+app,com.mpaznotifica.app.ui.screen.apoderados,ApoderadosScreenKt,309,0,4,0,22,0,10,0,8,0
+app,com.mpaznotifica.app.data.remote,PreferenciasUrl,37,0,0,0,7,0,4,0,4,0
+app,com.mpaznotifica.app.data.remote,ComunicacionRegistrada,3,27,0,0,0,4,1,3,1,3
+app,com.mpaznotifica.app.data.remote,TallerDto,36,0,0,0,4,0,4,0,4,0
+app,com.mpaznotifica.app.data.remote,ApiResult.Error,3,47,0,0,0,6,1,5,1,5
+app,com.mpaznotifica.app.data.remote,InterceptorTunel,21,0,0,0,6,0,2,0,2,0
+app,com.mpaznotifica.app.data.remote,LoginResponseDto,33,0,0,0,4,0,4,0,4,0
+app,com.mpaznotifica.app.data.remote,ApiResultKt,63,0,8,0,11,0,7,0,3,0
+app,com.mpaznotifica.app.data.remote,SesionApi,24,0,2,0,7,0,6,0,5,0
+app,com.mpaznotifica.app.data.remote,ApoderadoDto,96,0,0,0,8,0,8,0,8,0
+app,com.mpaznotifica.app.data.remote,ApiClient,99,0,0,0,10,0,7,0,7,0
+app,com.mpaznotifica.app.data.remote,MapeadoresKt,191,0,2,0,12,0,12,0,11,0
+app,com.mpaznotifica.app.data.remote,ManejadorErrores,105,0,10,0,14,0,11,0,6,0
+app,com.mpaznotifica.app.data.remote,MockWhatsAppService,0,14,0,0,0,2,0,2,0,2
+app,com.mpaznotifica.app.data.remote,MensajeDto,15,48,0,0,0,8,5,3,5,3
+app,com.mpaznotifica.app.data.remote,SaludDto,51,0,0,0,5,0,5,0,5,0
+app,com.mpaznotifica.app.data.remote,ComunicacionRegistradaDto,45,0,0,0,5,0,5,0,5,0
+app,com.mpaznotifica.app.data.remote,GuardiaCleartext,30,0,4,0,5,0,4,0,2,0
+app,com.mpaznotifica.app.data.remote,BitacoraRemota,21,0,0,0,3,0,3,0,3,0
+app,com.mpaznotifica.app.data.remote,UrlServidor,230,0,46,0,17,0,28,0,4,0
+app,com.mpaznotifica.app.data.remote,Despachador,20,170,1,3,6,32,1,7,0,6
+app,com.mpaznotifica.app.data.remote,RegistroHttp,21,0,0,0,6,0,1,0,1,0
+app,com.mpaznotifica.app.data.remote,MensajeriaSimulada,0,88,1,3,0,6,1,4,0,3
+app,com.mpaznotifica.app.data.remote,ResumenDto,42,0,0,0,5,0,5,0,5,0
+app,com.mpaznotifica.app.data.remote,MockSmsService,0,14,0,0,0,2,0,2,0,2
+app,com.mpaznotifica.app.data.remote,ManejadorErrores.ErrorDto,30,0,0,0,1,0,4,0,4,0
+app,com.mpaznotifica.app.data.remote,EstudianteDto,81,0,0,0,7,0,7,0,7,0
+app,com.mpaznotifica.app.data.remote,UsuarioDto,78,0,0,0,7,0,7,0,7,0
+app,com.mpaznotifica.app.data.remote,ConfiguracionServidor,65,0,0,0,7,0,5,0,5,0
+app,com.mpaznotifica.app.data.remote,RespuestaInvalidaException,7,0,0,0,1,0,1,0,1,0
+app,com.mpaznotifica.app.data.remote,ApiResult.Success,0,9,0,0,0,1,0,2,0,2
+app,com.mpaznotifica.app.data.remote,EnvioDto,96,0,0,0,8,0,8,0,8,0
+app,com.mpaznotifica.app.data.remote,RespuestaEnvioDto,15,18,0,0,1,3,1,3,1,3
+app,com.mpaznotifica.app.data.remote,NuevoEnvioDto,66,0,0,0,6,0,6,0,6,0
+app,com.mpaznotifica.app.data.remote,FuenteRemota,93,0,0,0,7,0,7,0,7,0
+app,com.mpaznotifica.app.data.remote,NuevaComunicacionDto,132,0,0,0,11,0,11,0,11,0
+app,com.mpaznotifica.app.data.remote,CanalRequestDto,21,0,0,0,3,0,3,0,3,0
+app,com.mpaznotifica.app.data.remote,InterceptorToken,26,0,0,0,2,0,2,0,2,0
+app,com.mpaznotifica.app.data.remote,ApiClient.Companion,20,0,0,0,1,0,1,0,1,0
+app,com.mpaznotifica.app.data.remote,MockEmailService,0,14,0,0,0,2,0,2,0,2
+app,com.mpaznotifica.app.data.remote,CausaError,2,61,0,0,1,9,1,1,1,1
+app,com.mpaznotifica.app.data.remote,ServicioMock,0,54,0,2,0,7,0,4,0,3
+app,com.mpaznotifica.app.data.remote,LoginRequestDto,36,0,0,0,4,0,4,0,4,0
+app,com.mpaznotifica.app.data.remote,ApiResult.SinConexion,33,0,0,0,4,0,4,0,4,0
+app,com.mpaznotifica.app.data.remote,SesionRemota,0,21,0,0,0,1,0,3,0,3
+app,com.mpaznotifica.app.data.remote,ComunicacionDto,162,0,0,0,13,0,13,0,13,0
+app,com.mpaznotifica.app.ui.screen,LoginScreenKt.LoginScreen.1.new Function2() {...},18,0,2,0,3,0,2,0,1,0
+app,com.mpaznotifica.app.ui.screen,PanelScreenKt.PanelScreen.new Function3() {...},303,0,12,0,27,0,11,0,5,0
+app,com.mpaznotifica.app.ui.screen,PanelScreenKt.PanelScreen.new Function2() {...},24,0,4,0,1,0,3,0,1,0
+app,com.mpaznotifica.app.ui.screen,LoginScreenKt.LoginScreen.4.1.2.1.5.1.new Function2() {...},41,0,8,0,11,0,5,0,1,0
+app,com.mpaznotifica.app.ui.screen,LoginScreenKt.LoginScreen.4.1.2.1.new Function3() {...},58,0,4,0,6,0,3,0,1,0
+app,com.mpaznotifica.app.ui.screen,LoginScreenKt.LoginScreen.2.new Function2() {...},22,0,4,0,4,0,3,0,1,0
+app,com.mpaznotifica.app.ui.screen,PanelScreenKt,215,0,8,0,17,0,11,0,7,0
+app,com.mpaznotifica.app.ui.screen,LoginScreenKt.LoginScreen.4.1.new Function3() {...},666,0,28,0,82,0,21,0,7,0
+app,com.mpaznotifica.app.ui.screen,LoginScreenKt.LoginScreen.new Function3() {...},179,0,8,0,19,0,6,0,2,0
+app,com.mpaznotifica.app.ui.screen,LoginScreenKt,568,0,20,0,38,0,29,0,19,0
+app,com.mpaznotifica.app.ui.screen,PanelScreenKt.PanelScreen.2.1.new Function3() {...},70,0,6,0,4,0,4,0,1,0
+app,com.mpaznotifica.app.ui.screen,LoginScreenKt.LoginScreen.4.1.2.1.new Function3() {...},133,0,6,0,14,0,4,0,1,0
+app,com.mpaznotifica.app.ui.screen,PanelScreenKt.PanelScreen.2.1.new Function3() {...},325,0,14,0,35,0,8,0,1,0
+app,com.mpaznotifica.app.ui.screen,LoginScreenKt.LoginScreen.4.1.2.1.new Function2() {...},150,0,10,0,19,0,7,0,2,0
+app,com.mpaznotifica.app.ui.screen,LoginScreenKt.LoginScreen.4.1.2.1.new Function3() {...},22,0,2,0,5,0,2,0,1,0

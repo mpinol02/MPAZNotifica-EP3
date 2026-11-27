@@ -1,0 +1,372 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>HistorialScreen.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.ui.screen.comunicados</a> &gt; <span class="el_source">HistorialScreen.kt</span></div><h1>HistorialScreen.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.ui.screen.comunicados
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Card
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
+import com.mpaznotifica.app.domain.Fechas
+import com.mpaznotifica.app.model.Comunicacion
+import com.mpaznotifica.app.model.ResumenEnvio
+import com.mpaznotifica.app.model.TipoComunicacion
+import com.mpaznotifica.app.model.Usuario
+import com.mpaznotifica.app.navigation.Rutas
+import com.mpaznotifica.app.ui.components.AvisoConexion
+import com.mpaznotifica.app.ui.components.BarraSuperior
+import com.mpaznotifica.app.ui.components.EstadoVacio
+import com.mpaznotifica.app.ui.components.EtiquetaInfo
+import com.mpaznotifica.app.ui.components.SelectorDesplegable
+import com.mpaznotifica.app.viewmodel.MpazNotificaViewModel
+
+/** Qué fecha del filtro se está eligiendo en el selector de fecha. */
+<span class="nc" id="L73">private enum class CampoFechaFiltro { DESDE, HASTA }</span>
+
+/**
+ * Historial y trazabilidad (RF-09, RF-10, RF-11): bitácora de todos los comunicados emitidos,
+ * visible para los perfiles emisores, con filtros combinables por tipo, emisor y rango de
+ * fechas. Cada tarjeta resume el resultado del despacho; al tocarla se abre el detalle de solo
+ * lectura (RN-02).
+ */
+@Composable
+fun HistorialScreen(
+    navController: NavHostController,
+    viewModel: MpazNotificaViewModel
+<span class="nc" id="L85">) {</span>
+<span class="nc" id="L86">    val historial by viewModel.historial.collectAsState()</span>
+<span class="nc" id="L87">    val filtros by viewModel.filtros.collectAsState()</span>
+<span class="nc" id="L88">    val errorFechas by viewModel.errorFechas.collectAsState()</span>
+<span class="nc" id="L89">    val resumenes by viewModel.resumenes.collectAsState()</span>
+<span class="nc" id="L90">    val emisores by viewModel.emisores.collectAsState()</span>
+<span class="nc" id="L91">    val estadoDatos by viewModel.estadoDatos.collectAsState()</span>
+<span class="nc" id="L92">    val sinSesionRemota by viewModel.sinSesionRemota.collectAsState()</span>
+
+<span class="nc" id="L94">    var mostrarFiltros by rememberSaveable { mutableStateOf(false) }</span>
+<span class="nc" id="L95">    var campoEnEdicion by remember { mutableStateOf&lt;CampoFechaFiltro?&gt;(null) }</span>
+
+    // Al abrir la bitácora se pide al servidor la versión más reciente (si ya hay una en curso, no repite).
+<span class="nc bnc" id="L98" title="All 2 branches missed.">    LaunchedEffect(Unit) { viewModel.sincronizar() }</span>
+
+<span class="nc" id="L100">    Scaffold(</span>
+<span class="nc bnc" id="L101" title="All 4 branches missed.">        topBar = { BarraSuperior(&quot;Historial de comunicados&quot;, navController) }</span>
+<span class="nc" id="L102">    ) { padding -&gt;</span>
+<span class="nc bnc" id="L103" title="All 4 branches missed.">        LazyColumn(</span>
+<span class="nc" id="L104">            modifier = Modifier</span>
+<span class="nc" id="L105">                .padding(padding)</span>
+<span class="nc" id="L106">                .fillMaxSize(),</span>
+<span class="nc" id="L107">            contentPadding = PaddingValues(16.dp),</span>
+<span class="nc" id="L108">            verticalArrangement = Arrangement.spacedBy(8.dp)</span>
+        ) {
+<span class="nc" id="L110">            item {</span>
+<span class="nc bnc" id="L111" title="All 4 branches missed.">                AvisoConexion(</span>
+<span class="nc" id="L112">                    estado = estadoDatos,</span>
+<span class="nc" id="L113">                    sinSesionRemota = sinSesionRemota,</span>
+<span class="nc" id="L114">                    onReintentar = { viewModel.sincronizar() }</span>
+<span class="nc" id="L115">                )</span>
+<span class="nc" id="L116">            }</span>
+
+<span class="nc" id="L118">            item {</span>
+<span class="nc bnc" id="L119" title="All 4 branches missed.">                Row(</span>
+<span class="nc" id="L120">                    modifier = Modifier.fillMaxWidth(),</span>
+<span class="nc" id="L121">                    verticalAlignment = Alignment.CenterVertically,</span>
+<span class="nc" id="L122">                    horizontalArrangement = Arrangement.SpaceBetween</span>
+                ) {
+<span class="nc" id="L124">                    Text(</span>
+<span class="nc" id="L125">                        text = &quot;${historial.size} comunicado(s)&quot;,</span>
+<span class="nc" id="L126">                        style = MaterialTheme.typography.labelLarge</span>
+                    )
+<span class="nc bnc" id="L128" title="All 2 branches missed.">                    FilledTonalButton(onClick = { mostrarFiltros = !mostrarFiltros }) {</span>
+<span class="nc bnc" id="L129" title="All 4 branches missed.">                        Icon(Icons.Filled.FilterList, contentDescription = null, modifier = Modifier.size(18.dp))</span>
+<span class="nc" id="L130">                        val activos = filtros.cantidadActivos</span>
+<span class="nc bnc" id="L131" title="All 2 branches missed.">                        Text(if (activos &gt; 0) &quot;  Filtros ($activos)&quot; else &quot;  Filtros&quot;)</span>
+<span class="nc" id="L132">                    }</span>
+<span class="nc" id="L133">                }</span>
+<span class="nc" id="L134">            }</span>
+
+<span class="nc" id="L136">            item {</span>
+<span class="nc bnc" id="L137" title="All 4 branches missed.">                AnimatedVisibility(</span>
+<span class="nc" id="L138">                    visible = mostrarFiltros,</span>
+<span class="nc" id="L139">                    enter = fadeIn(tween(250)) + expandVertically(tween(250)),</span>
+<span class="nc" id="L140">                    exit = fadeOut(tween(200)) + shrinkVertically(tween(200))</span>
+<span class="nc" id="L141">                ) {</span>
+<span class="nc" id="L142">                    Card(modifier = Modifier.fillMaxWidth()) {</span>
+<span class="nc bnc" id="L143" title="All 4 branches missed.">                        Column(</span>
+<span class="nc" id="L144">                            modifier = Modifier.padding(12.dp),</span>
+<span class="nc" id="L145">                            verticalArrangement = Arrangement.spacedBy(8.dp)</span>
+                        ) {
+<span class="nc" id="L147">                            SelectorDesplegable&lt;TipoComunicacion?&gt;(</span>
+<span class="nc" id="L148">                                etiqueta = &quot;Tipo de comunicación&quot;,</span>
+<span class="nc" id="L149">                                opciones = listOf&lt;TipoComunicacion?&gt;(null) + TipoComunicacion.entries,</span>
+<span class="nc" id="L150">                                seleccion = filtros.tipo,</span>
+<span class="nc bnc" id="L151" title="All 4 branches missed.">                                textoDe = { it?.etiqueta ?: &quot;Todos los tipos&quot; },</span>
+<span class="nc" id="L152">                                onSeleccion = { viewModel.filtrarPorTipo(it) },</span>
+<span class="nc" id="L153">                                textoVacio = &quot;Todos los tipos&quot;,</span>
+                                leadingIcon = { Icon(Icons.Filled.Category, contentDescription = null) }
+                            )
+<span class="nc" id="L156">                            SelectorDesplegable&lt;Usuario?&gt;(</span>
+<span class="nc" id="L157">                                etiqueta = &quot;Emisor&quot;,</span>
+<span class="nc" id="L158">                                opciones = listOf&lt;Usuario?&gt;(null) + emisores,</span>
+<span class="nc bnc" id="L159" title="All 4 branches missed.">                                seleccion = emisores.find { it.id == filtros.emisorId },</span>
+<span class="nc bnc" id="L160" title="All 4 branches missed.">                                textoDe = { it?.nombre ?: &quot;Todos los emisores&quot; },</span>
+<span class="nc bnc" id="L161" title="All 2 branches missed.">                                onSeleccion = { viewModel.filtrarPorEmisor(it?.id) },</span>
+<span class="nc" id="L162">                                textoVacio = &quot;Todos los emisores&quot;,</span>
+                                leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) }
+                            )
+<span class="nc" id="L165">                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {</span>
+<span class="nc" id="L166">                                CampoFecha(</span>
+<span class="nc" id="L167">                                    etiqueta = &quot;Desde&quot;,</span>
+<span class="nc" id="L168">                                    valor = filtros.desde,</span>
+<span class="nc bnc" id="L169" title="All 2 branches missed.">                                    hayError = errorFechas != null,</span>
+<span class="nc" id="L170">                                    onAbrir = { campoEnEdicion = CampoFechaFiltro.DESDE },</span>
+<span class="nc" id="L171">                                    onLimpiar = { viewModel.filtrarDesde(null) },</span>
+<span class="nc" id="L172">                                    modifier = Modifier.weight(1f)</span>
+                                )
+<span class="nc" id="L174">                                CampoFecha(</span>
+<span class="nc" id="L175">                                    etiqueta = &quot;Hasta&quot;,</span>
+<span class="nc" id="L176">                                    valor = filtros.hasta,</span>
+<span class="nc bnc" id="L177" title="All 2 branches missed.">                                    hayError = errorFechas != null,</span>
+<span class="nc" id="L178">                                    onAbrir = { campoEnEdicion = CampoFechaFiltro.HASTA },</span>
+<span class="nc" id="L179">                                    onLimpiar = { viewModel.filtrarHasta(null) },</span>
+<span class="nc" id="L180">                                    modifier = Modifier.weight(1f)</span>
+                                )
+<span class="nc" id="L182">                            }</span>
+<span class="nc bnc" id="L183" title="All 2 branches missed.">                            if (errorFechas != null) {</span>
+<span class="nc" id="L184">                                Text(</span>
+<span class="nc bnc" id="L185" title="All 2 branches missed.">                                    text = errorFechas.orEmpty(),</span>
+<span class="nc" id="L186">                                    style = MaterialTheme.typography.bodySmall,</span>
+<span class="nc" id="L187">                                    color = MaterialTheme.colorScheme.error</span>
+                                )
+                            }
+<span class="nc bnc" id="L190" title="All 2 branches missed.">                            if (filtros.cantidadActivos &gt; 0) {</span>
+<span class="nc" id="L191">                                TextButton(onClick = { viewModel.limpiarFiltros() }) {</span>
+                                    Text(&quot;Limpiar filtros&quot;)
+                                }
+                            }
+<span class="nc" id="L195">                        }</span>
+<span class="nc" id="L196">                    }</span>
+<span class="nc" id="L197">                }</span>
+<span class="nc" id="L198">            }</span>
+
+<span class="nc bnc" id="L200" title="All 2 branches missed.">            if (historial.isEmpty()) {</span>
+<span class="nc" id="L201">                item {</span>
+<span class="nc bnc" id="L202" title="All 4 branches missed.">                    EstadoVacio(</span>
+<span class="nc" id="L203">                        icono = Icons.Filled.History,</span>
+<span class="nc" id="L204">                        titulo = &quot;Sin comunicados&quot;,</span>
+<span class="nc bnc" id="L205" title="All 2 branches missed.">                        detalle = if (filtros.cantidadActivos &gt; 0) {</span>
+<span class="nc" id="L206">                            &quot;Ningún comunicado coincide con los filtros.&quot;</span>
+                        } else {
+<span class="nc" id="L208">                            &quot;Aún no hay comunicados enviados.&quot;</span>
+                        }
+<span class="nc" id="L210">                    )</span>
+<span class="nc" id="L211">                }</span>
+            }
+
+<span class="nc" id="L214">            items(historial, key = { it.id }) { comunicado -&gt;</span>
+                TarjetaComunicado(
+                    comunicado = comunicado,
+                    resumen = resumenes[comunicado.id],
+<span class="nc" id="L218">                    onClick = { navController.navigate(Rutas.detalle(comunicado.id)) },</span>
+                    modifier = Modifier.animateItem()
+                )
+            }
+<span class="nc" id="L222">        }</span>
+<span class="nc" id="L223">    }</span>
+
+<span class="nc" id="L225">    val campo = campoEnEdicion</span>
+<span class="nc bnc" id="L226" title="All 2 branches missed.">    if (campo != null) {</span>
+<span class="nc bnc" id="L227" title="All 2 branches missed.">        DialogoFecha(</span>
+<span class="nc bnc" id="L228" title="All 2 branches missed.">            inicial = if (campo == CampoFechaFiltro.DESDE) filtros.desde else filtros.hasta,</span>
+            onElegida = { fecha -&gt;
+<span class="nc bnc" id="L230" title="All 2 branches missed.">                if (campo == CampoFechaFiltro.DESDE) viewModel.filtrarDesde(fecha) else viewModel.filtrarHasta(fecha)</span>
+<span class="nc" id="L231">            },</span>
+<span class="nc" id="L232">            onCerrar = { campoEnEdicion = null }</span>
+        )
+    }
+<span class="nc" id="L235">}</span>
+
+@Composable
+private fun TarjetaComunicado(
+    comunicado: Comunicacion,
+    resumen: ResumenEnvio?,
+    onClick: () -&gt; Unit,
+<span class="nc" id="L242">    modifier: Modifier = Modifier</span>
+<span class="nc bnc" id="L243" title="All 30 branches missed.">) {</span>
+<span class="nc" id="L244">    Card(modifier = modifier</span>
+<span class="nc" id="L245">        .fillMaxWidth()</span>
+<span class="nc" id="L246">        .clickable(onClick = onClick)</span>
+<span class="nc" id="L247">    ) {</span>
+<span class="nc bnc" id="L248" title="All 4 branches missed.">        Column(</span>
+<span class="nc" id="L249">            modifier = Modifier.padding(12.dp),</span>
+<span class="nc" id="L250">            verticalArrangement = Arrangement.spacedBy(6.dp)</span>
+        ) {
+<span class="nc" id="L252">            Text(text = comunicado.asunto, style = MaterialTheme.typography.titleSmall)</span>
+<span class="nc" id="L253">            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {</span>
+<span class="nc" id="L254">                EtiquetaInfo(texto = comunicado.tipo.etiqueta, icono = Icons.Filled.Category)</span>
+<span class="nc" id="L255">                EtiquetaInfo(</span>
+<span class="nc bnc" id="L256" title="All 4 branches missed.">                    texto = comunicado.alcance.etiqueta + (comunicado.destinoReferencia?.let { &quot; · $it&quot; } ?: &quot;&quot;),</span>
+<span class="nc" id="L257">                    icono = Icons.Filled.Groups</span>
+                )
+<span class="nc" id="L259">            }</span>
+<span class="nc bnc" id="L260" title="All 2 branches missed.">            if (comunicado.requiereFirmaFisica) {</span>
+<span class="nc" id="L261">                EtiquetaInfo(</span>
+<span class="nc" id="L262">                    texto = &quot;Firma física pendiente (rol informativo)&quot;,</span>
+<span class="nc" id="L263">                    icono = Icons.Filled.Warning,</span>
+<span class="nc" id="L264">                    colorFondo = MaterialTheme.colorScheme.tertiaryContainer,</span>
+<span class="nc" id="L265">                    colorTexto = MaterialTheme.colorScheme.onTertiaryContainer</span>
+                )
+            }
+<span class="nc bnc" id="L268" title="All 4 branches missed.">            if (resumen != null &amp;&amp; resumen.total &gt; 0) {</span>
+<span class="nc" id="L269">                Row(</span>
+<span class="nc" id="L270">                    verticalAlignment = Alignment.CenterVertically,</span>
+<span class="nc" id="L271">                    horizontalArrangement = Arrangement.spacedBy(4.dp)</span>
+                ) {
+<span class="nc" id="L273">                    Icon(</span>
+<span class="nc" id="L274">                        imageVector = Icons.Filled.CheckCircle,</span>
+<span class="nc" id="L275">                        contentDescription = null,</span>
+<span class="nc" id="L276">                        modifier = Modifier.size(16.dp),</span>
+<span class="nc" id="L277">                        tint = MaterialTheme.colorScheme.primary</span>
+                    )
+<span class="nc" id="L279">                    Text(text = &quot;${resumen.despachados} despachado(s)&quot;, style = MaterialTheme.typography.bodySmall)</span>
+<span class="nc bnc" id="L280" title="All 2 branches missed.">                    if (resumen.fallidos &gt; 0) {</span>
+<span class="nc" id="L281">                        Icon(</span>
+<span class="nc" id="L282">                            imageVector = Icons.Filled.Error,</span>
+<span class="nc" id="L283">                            contentDescription = null,</span>
+<span class="nc" id="L284">                            modifier = Modifier.size(16.dp),</span>
+<span class="nc" id="L285">                            tint = MaterialTheme.colorScheme.error</span>
+                        )
+<span class="nc" id="L287">                        Text(text = &quot;${resumen.fallidos} fallido(s)&quot;, style = MaterialTheme.typography.bodySmall)</span>
+                    }
+<span class="nc" id="L289">                }</span>
+            }
+<span class="nc" id="L291">            Text(</span>
+<span class="nc" id="L292">                text = &quot;${Fechas.legible(comunicado.fechaHora)} · ${comunicado.autorNombre}&quot;,</span>
+<span class="nc" id="L293">                style = MaterialTheme.typography.labelSmall,</span>
+<span class="nc" id="L294">                color = MaterialTheme.colorScheme.onSurfaceVariant</span>
+            )
+<span class="nc" id="L296">        }</span>
+<span class="nc" id="L297">    }</span>
+<span class="nc bnc" id="L298" title="All 2 branches missed.">}</span>
+
+/**
+ * Campo de solo lectura que abre el selector de fecha al tocarlo (o al tocar su ícono de
+ * calendario). El error del rango se marca en ambos campos (isError) y el mensaje se muestra
+ * una sola vez bajo la fila.
+ */
+@Composable
+private fun CampoFecha(
+    etiqueta: String,
+    valor: String?,
+    hayError: Boolean,
+    onAbrir: () -&gt; Unit,
+    onLimpiar: () -&gt; Unit,
+<span class="nc" id="L312">    modifier: Modifier = Modifier</span>
+<span class="nc bnc" id="L313" title="All 42 branches missed.">) {</span>
+<span class="nc" id="L314">    val fuente = remember { MutableInteractionSource() }</span>
+<span class="nc" id="L315">    val abrir by rememberUpdatedState(onAbrir)</span>
+<span class="nc" id="L316">    LaunchedEffect(fuente) {</span>
+<span class="nc" id="L317">        fuente.interactions.collect { interaccion -&gt;</span>
+<span class="nc bnc" id="L318" title="All 2 branches missed.">            if (interaccion is PressInteraction.Release) abrir()</span>
+<span class="nc" id="L319">        }</span>
+<span class="nc" id="L320">    }</span>
+<span class="nc" id="L321">    OutlinedTextField(</span>
+<span class="nc bnc" id="L322" title="All 4 branches missed.">        value = valor?.let { Fechas.fechaLegible(it) }.orEmpty(),</span>
+<span class="nc" id="L323">        onValueChange = {},</span>
+<span class="nc" id="L324">        readOnly = true,</span>
+<span class="nc bnc" id="L325" title="All 4 branches missed.">        label = { Text(etiqueta) },</span>
+        placeholder = { Text(&quot;dd-mm-aaaa&quot;) },
+<span class="nc" id="L327">        leadingIcon = {</span>
+<span class="nc bnc" id="L328" title="All 4 branches missed.">            IconButton(onClick = onAbrir) {</span>
+<span class="nc bnc" id="L329" title="All 4 branches missed.">                Icon(Icons.Filled.CalendarMonth, contentDescription = &quot;Elegir fecha $etiqueta&quot;)</span>
+<span class="nc" id="L330">            }</span>
+<span class="nc" id="L331">        },</span>
+<span class="nc bnc" id="L332" title="All 2 branches missed.">        trailingIcon = if (valor != null) {</span>
+<span class="nc" id="L333">            {</span>
+<span class="nc bnc" id="L334" title="All 4 branches missed.">                IconButton(onClick = onLimpiar) {</span>
+<span class="nc bnc" id="L335" title="All 4 branches missed.">                    Icon(Icons.Filled.Clear, contentDescription = &quot;Quitar fecha $etiqueta&quot;)</span>
+<span class="nc" id="L336">                }</span>
+<span class="nc" id="L337">            }</span>
+        } else {
+<span class="nc" id="L339">            null</span>
+        },
+<span class="nc" id="L341">        isError = hayError,</span>
+<span class="nc" id="L342">        singleLine = true,</span>
+<span class="nc" id="L343">        interactionSource = fuente,</span>
+<span class="nc" id="L344">        modifier = modifier</span>
+    )
+<span class="nc bnc" id="L346" title="All 2 branches missed.">}</span>
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DialogoFecha(
+    inicial: String?,
+    onElegida: (String) -&gt; Unit,
+    onCerrar: () -&gt; Unit
+<span class="nc bnc" id="L354" title="All 16 branches missed.">) {</span>
+<span class="nc bnc" id="L355" title="All 2 branches missed.">    val estado = rememberDatePickerState(initialSelectedDateMillis = inicial?.let { Fechas.aMillisUtc(it) })</span>
+<span class="nc" id="L356">    DatePickerDialog(</span>
+<span class="nc" id="L357">        onDismissRequest = onCerrar,</span>
+<span class="nc" id="L358">        confirmButton = {</span>
+<span class="nc bnc" id="L359" title="All 4 branches missed.">            TextButton(</span>
+<span class="nc bnc" id="L360" title="All 2 branches missed.">                enabled = estado.selectedDateMillis != null,</span>
+<span class="nc" id="L361">                onClick = {</span>
+<span class="nc bnc" id="L362" title="All 2 branches missed.">                    estado.selectedDateMillis?.let { onElegida(Fechas.deMillisUtc(it)) }</span>
+<span class="nc" id="L363">                    onCerrar()</span>
+<span class="nc" id="L364">                }</span>
+<span class="nc" id="L365">            ) { Text(&quot;Aceptar&quot;) }</span>
+<span class="nc" id="L366">        },</span>
+<span class="nc bnc" id="L367" title="All 4 branches missed.">        dismissButton = { TextButton(onClick = onCerrar) { Text(&quot;Cancelar&quot;) } }</span>
+<span class="nc" id="L368">    ) {</span>
+<span class="nc bnc" id="L369" title="All 4 branches missed.">        DatePicker(state = estado)</span>
+<span class="nc" id="L370">    }</span>
+<span class="nc bnc" id="L371" title="All 2 branches missed.">}</span>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

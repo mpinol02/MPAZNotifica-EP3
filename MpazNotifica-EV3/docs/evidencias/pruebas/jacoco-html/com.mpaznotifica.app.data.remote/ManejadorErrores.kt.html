@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ManejadorErrores.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.data.remote</a> &gt; <span class="el_source">ManejadorErrores.kt</span></div><h1>ManejadorErrores.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.data.remote
+
+import com.google.gson.Gson
+import com.google.gson.JsonParseException
+import retrofit2.HttpException
+import java.io.IOException
+
+/** La respuesta del servidor llegó, pero le faltan datos o trae valores que la app no conoce. */
+<span class="nc" id="L9">class RespuestaInvalidaException(mensaje: String) : Exception(mensaje)</span>
+
+/**
+ * EXPERIENCIA 3 - Parte 2 (TODO E3-2 y E3-3): convierte excepciones de red en [ApiResult] con
+ * mensajes en español para el usuario. La interfaz nunca debe ver una excepción.
+ *
+ * Formato de los errores del backend (docs/API.md): cuerpo JSON `{ &quot;error&quot;: &quot;...&quot;, &quot;campo&quot;: &quot;...&quot; }`.
+ */
+object ManejadorErrores {
+
+    const val MENSAJE_RESPUESTA_INVALIDA = &quot;El servidor respondió con un formato inesperado. Intenta nuevamente.&quot;
+    const val MENSAJE_SERVIDOR = &quot;El servidor tuvo un problema. Intenta nuevamente en unos minutos.&quot;
+    const val MENSAJE_INESPERADO = &quot;Ocurrió un error inesperado. Intenta nuevamente.&quot;
+
+<span class="nc" id="L23">    private val gson = Gson()</span>
+
+    /**
+     * TODO(E3-2): ejecuta [bloque] y lo envuelve en un [ApiResult].
+     * Archivo: este. Criterios de aceptación:
+     *  - Sin excepción -&gt; `ApiResult.Success(valor)`.
+     *  - CancellationException -&gt; se vuelve a lanzar (NUNCA se traga la cancelación de corrutinas).
+     *  - Cualquier otra excepción -&gt; `desdeExcepcion(e)`.
+     */
+    suspend fun &lt;T&gt; llamar(bloque: suspend () -&gt; T): ApiResult&lt;T&gt; =
+<span class="nc" id="L33">        TODO(&quot;E3-2: try { Success(bloque()) } catch (CancellationException) { throw } catch (Exception) { desdeExcepcion(e) }&quot;)</span>
+
+    /**
+     * TODO(E3-3a): traduce una excepción a [ApiResult]. Criterios de aceptación:
+     *  - [HttpException] -&gt; `desdeHttp(codigo, cuerpoDe(e))`.
+     *  - [java.net.SocketTimeoutException] -&gt; `ApiResult.SinConexion(ApiResult.MENSAJE_TIEMPO_AGOTADO, tiempoAgotado = true)`.
+     *    (OJO: es subclase de IOException; debe evaluarse ANTES.)
+     *  - [IOException] -&gt; `ApiResult.SinConexion()` (sin red, servidor apagado, host inalcanzable).
+     *  - [JsonParseException] y [RespuestaInvalidaException] -&gt; `ApiResult.Error(MENSAJE_RESPUESTA_INVALIDA, CausaError.RESPUESTA_INVALIDA)`.
+     *  - Cualquier otra -&gt; `ApiResult.Error(MENSAJE_INESPERADO, CausaError.DESCONOCIDA)`.
+     */
+    fun desdeExcepcion(e: Throwable): ApiResult&lt;Nothing&gt; =
+<span class="nc" id="L45">        TODO(&quot;E3-3a: when (e) { is HttpException -&gt; ...; is SocketTimeoutException -&gt; ...; is IOException -&gt; ...; ... }&quot;)</span>
+
+    /**
+     * TODO(E3-3b): traduce un código HTTP (y el cuerpo de error, si lo hay) a [ApiResult.Error].
+     * Si el cuerpo es JSON `{error, campo}` se usa `error` como mensaje y `campo` como campo del
+     * formulario afectado; si no es JSON válido o viene vacío se usa el mensaje por defecto.
+     *
+     *  | Código | CausaError     | Mensaje por defecto (si el servidor no trae `error`)           |
+     *  |--------|----------------|-----------------------------------------------------------------|
+     *  | 400    | VALIDACION     | Los datos enviados no son válidos.                              |
+     *  | 422    | VALIDACION     | El servidor no pudo procesar los datos enviados.                |
+     *  | 401    | NO_AUTORIZADO  | Tu sesión expiró. Ingresa nuevamente.                           |
+     *  | 403    | PROHIBIDO      | Tu perfil no tiene permiso para realizar esta acción.           |
+     *  | 404    | NO_ENCONTRADO  | No se encontró lo solicitado en el servidor.                    |
+     *  | 405    | PROHIBIDO      | Esa operación no está permitida.                                |
+     *  | 409    | CONFLICTO      | La operación entra en conflicto con datos ya registrados.       |
+     *  | 5xx    | SERVIDOR       | [MENSAJE_SERVIDOR] (siempre, sin mostrar el detalle del servidor) |
+     *  | otro   | DESCONOCIDA    | El servidor respondió con un error (&lt;código&gt;).                  |
+     *
+     * El resultado debe incluir `codigo` y `campo` (en 5xx, `campo` = null).
+     */
+    fun desdeHttp(codigo: Int, cuerpo: String?): ApiResult.Error =
+<span class="nc" id="L67">        TODO(&quot;E3-3b: aplicar la tabla de códigos de arriba; interpretar el cuerpo con ErrorDto&quot;)</span>
+
+    // ---- Ayudas ya implementadas -----------------------------------------------------------
+
+    /** Cuerpo de error del servidor: `{ &quot;error&quot;: &quot;...&quot;, &quot;campo&quot;: &quot;...&quot; }`. Útil para E3-3b. */
+<span class="nc" id="L72">    class ErrorDto(val error: String? = null, val campo: String? = null)</span>
+
+    /** Lee el cuerpo de error de una [HttpException] (null si no se puede leer). Útil para E3-3a. */
+    fun cuerpoDe(e: HttpException): String? =
+<span class="nc" id="L76">        try {</span>
+<span class="nc bnc" id="L77" title="All 4 branches missed.">            e.response()?.errorBody()?.string()</span>
+<span class="nc" id="L78">        } catch (ignorada: IOException) {</span>
+<span class="nc" id="L79">            null</span>
+<span class="nc" id="L80">        }</span>
+
+    /** Interpreta un cuerpo de error JSON (null si viene vacío o mal formado). Útil para E3-3b. */
+    fun interpretarCuerpo(cuerpo: String?): ErrorDto? =
+<span class="nc" id="L84">        try {</span>
+<span class="nc bnc" id="L85" title="All 6 branches missed.">            if (cuerpo.isNullOrBlank()) null else gson.fromJson(cuerpo, ErrorDto::class.java)</span>
+<span class="nc" id="L86">        } catch (e: JsonParseException) {</span>
+<span class="nc" id="L87">            null</span>
+<span class="nc" id="L88">        }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

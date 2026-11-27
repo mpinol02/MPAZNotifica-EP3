@@ -1,0 +1,443 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReglasComunicado.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.domain</a> &gt; <span class="el_source">ReglasComunicado.kt</span></div><h1>ReglasComunicado.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.domain
+
+import com.mpaznotifica.app.model.AlcanceEnvio
+import com.mpaznotifica.app.model.Apoderado
+import com.mpaznotifica.app.model.CanalDespacho
+import com.mpaznotifica.app.model.ErroresComunicado
+import com.mpaznotifica.app.model.Perfil
+import com.mpaznotifica.app.model.TipoComunicacion
+import com.mpaznotifica.app.model.Usuario
+
+/**
+ * Reglas de negocio de los comunicados.
+ *
+ * RF-02: opciones según perfil.
+ * RF-03: validación del formulario.
+ * RF-04: resolución de destinatarios.
+ * RF-05: permisos de Inspectoría.
+ * RF-06: restricciones del Profesor Jefe.
+ * RF-12: autorización con firma física.
+ * RF-13: canal preferente.
+ *
+ * EV3: el envío individual a apoderados del propio curso
+ * se mantiene pendiente de confirmación docente.
+ */
+object ReglasComunicado {
+
+    const val MIN_ASUNTO = 3
+    const val MAX_ASUNTO = 100
+    const val MIN_CUERPO = 10
+    const val MAX_CUERPO = 1000
+
+    // Tamaño máximo del documento adjunto.
+    const val MAX_ADJUNTO_BYTES = 5L * 1024 * 1024
+    const val TIPO_MIME_PDF = &quot;application/pdf&quot;
+
+    const val MSG_SOLO_CURSO = &quot;Solo puedes enviar comunicados a tu curso&quot;
+    const val MSG_TIPO_NO_DISPONIBLE = &quot;Este tipo de comunicado no está disponible para tu perfil&quot;
+    const val MSG_SIN_SESION = &quot;Debes iniciar sesión para enviar comunicados&quot;
+    const val MSG_SIN_CURSO = &quot;Tu usuario no tiene un curso asignado&quot;
+    const val MSG_SIN_DESTINATARIOS = &quot;No hay apoderados para este destino&quot;
+
+    const val AVISO_FIRMA_FISICA =
+        &quot;IMPORTANTE: esta autorización requiere firma manuscrita del apoderado. &quot; +
+                &quot;Debe firmarse en papel y entregarse en el establecimiento.&quot;
+
+    // Define los tipos de comunicación permitidos por perfil.
+    fun tiposPermitidos(usuario: Usuario?): List&lt;TipoComunicacion&gt; =
+<span class="pc bpc" id="L48" title="1 of 8 branches missed.">        when (usuario?.perfil) {</span>
+
+            Perfil.INSPECTORIA_GENERAL -&gt;
+<span class="fc" id="L51">                TipoComunicacion.entries.toList()</span>
+
+<span class="fc" id="L53">            Perfil.PROFESOR_JEFE -&gt; listOf(</span>
+<span class="fc" id="L54">                TipoComunicacion.PEDAGOGICA,</span>
+<span class="fc" id="L55">                TipoComunicacion.CITACION,</span>
+<span class="fc" id="L56">                TipoComunicacion.SALIDA_PEDAGOGICA</span>
+            )
+
+<span class="fc" id="L59">            null -&gt; emptyList()</span>
+<span class="fc" id="L60">        }</span>
+
+    // Define los alcances permitidos según el usuario.
+    fun alcancesPermitidos(usuario: Usuario?): List&lt;AlcanceEnvio&gt; =
+<span class="pc bpc" id="L64" title="1 of 8 branches missed.">        when (usuario?.perfil) {</span>
+
+            Perfil.INSPECTORIA_GENERAL -&gt;
+<span class="fc" id="L67">                AlcanceEnvio.entries.toList()</span>
+
+<span class="fc" id="L69">            Perfil.PROFESOR_JEFE -&gt; listOf(</span>
+<span class="fc" id="L70">                AlcanceEnvio.CURSO,</span>
+<span class="fc" id="L71">                AlcanceEnvio.APODERADO_INDIVIDUAL</span>
+            )
+
+<span class="fc" id="L74">            null -&gt; emptyList()</span>
+<span class="fc" id="L75">        }</span>
+
+    // Obtiene únicamente los apoderados del curso indicado.
+    fun apoderadosDelCurso(
+        curso: String?,
+        datos: DatosReferencia
+    ): List&lt;Apoderado&gt; {
+
+<span class="pc bpc" id="L83" title="1 of 2 branches missed.">        if (curso == null) return emptyList()</span>
+
+<span class="fc" id="L85">        val idsEstudiantes = datos.estudiantes</span>
+<span class="fc" id="L86">            .filter { it.curso == curso }</span>
+<span class="fc" id="L87">            .map { it.id }</span>
+<span class="fc" id="L88">            .toSet()</span>
+
+<span class="fc" id="L90">        return datos.apoderados.filter { apoderado -&gt;</span>
+<span class="fc" id="L91">            apoderado.pupilosIds.any {</span>
+<span class="fc" id="L92">                it in idsEstudiantes</span>
+<span class="fc" id="L93">            }</span>
+        }
+    }
+
+    // EV3: evita seleccionar apoderados con nombres ambiguos.
+    private fun nombresIndividuales(
+        apoderados: List&lt;Apoderado&gt;,
+        datos: DatosReferencia
+    ): List&lt;String&gt; =
+<span class="fc" id="L102">        apoderados</span>
+<span class="fc" id="L103">            .map { it.nombreCompleto }</span>
+<span class="fc" id="L104">            .distinct()</span>
+<span class="fc" id="L105">            .filter { nombre -&gt;</span>
+<span class="pc bpc" id="L106" title="1 of 2 branches missed.">                resolverApoderados(</span>
+<span class="fc" id="L107">                    AlcanceEnvio.APODERADO_INDIVIDUAL,</span>
+<span class="fc" id="L108">                    nombre,</span>
+<span class="fc" id="L109">                    datos</span>
+<span class="fc" id="L110">                ).size == 1</span>
+<span class="fc" id="L111">            }</span>
+
+    // RF-06: determina los destinos disponibles según el perfil.
+    fun destinosPara(
+        alcance: AlcanceEnvio?,
+        usuario: Usuario?,
+        datos: DatosReferencia
+    ): List&lt;String&gt; {
+
+        if (
+<span class="fc bfc" id="L121" title="All 2 branches covered.">            usuario == null ||</span>
+<span class="pc bpc" id="L122" title="1 of 2 branches missed.">            alcance == null ||</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">            alcance !in alcancesPermitidos(usuario)</span>
+        ) {
+<span class="fc" id="L125">            return emptyList()</span>
+        }
+
+<span class="fc bfc" id="L128" title="All 2 branches covered.">        return if (usuario.perfil == Perfil.PROFESOR_JEFE) {</span>
+
+<span class="pc bpc" id="L130" title="1 of 3 branches missed.">            when (alcance) {</span>
+
+                AlcanceEnvio.CURSO -&gt;
+<span class="fc" id="L133">                    listOfNotNull(usuario.cursoAsignado)</span>
+
+                AlcanceEnvio.APODERADO_INDIVIDUAL -&gt;
+<span class="fc" id="L136">                    nombresIndividuales(</span>
+<span class="fc" id="L137">                        apoderadosDelCurso(</span>
+<span class="fc" id="L138">                            usuario.cursoAsignado,</span>
+<span class="fc" id="L139">                            datos</span>
+                        ),
+<span class="fc" id="L141">                        datos</span>
+                    )
+
+                AlcanceEnvio.TALLER,
+                AlcanceEnvio.COLEGIO_COMPLETO -&gt;
+<span class="nc" id="L146">                    emptyList()</span>
+            }
+
+        } else {
+
+<span class="fc bfc" id="L151" title="All 4 branches covered.">            when (alcance) {</span>
+
+                AlcanceEnvio.CURSO -&gt;
+<span class="fc" id="L154">                    datos.cursos</span>
+
+                AlcanceEnvio.TALLER -&gt;
+<span class="fc" id="L157">                    datos.talleres.map { it.nombre }</span>
+
+                AlcanceEnvio.APODERADO_INDIVIDUAL -&gt;
+<span class="fc" id="L160">                    nombresIndividuales(</span>
+<span class="fc" id="L161">                        datos.apoderados,</span>
+<span class="fc" id="L162">                        datos</span>
+                    )
+
+                AlcanceEnvio.COLEGIO_COMPLETO -&gt;
+<span class="fc" id="L166">                    emptyList()</span>
+            }
+        }
+    }
+
+    // Obtiene los destinatarios reales sin duplicarlos.
+    fun resolverApoderados(
+        alcance: AlcanceEnvio,
+        destino: String?,
+        datos: DatosReferencia
+    ): List&lt;Apoderado&gt; =
+
+<span class="fc bfc" id="L178" title="All 4 branches covered.">        when (alcance) {</span>
+
+            AlcanceEnvio.COLEGIO_COMPLETO -&gt;
+<span class="fc" id="L181">                datos.apoderados</span>
+
+            AlcanceEnvio.CURSO -&gt;
+<span class="fc" id="L184">                apoderadosDelCurso(destino, datos)</span>
+
+            AlcanceEnvio.TALLER -&gt; {
+
+<span class="fc" id="L188">                val tallerId = datos.talleres</span>
+<span class="fc bfc" id="L189" title="All 4 branches covered.">                    .find { it.nombre == destino }</span>
+<span class="fc bfc" id="L190" title="All 2 branches covered.">                    ?.id</span>
+
+<span class="fc" id="L192">                val idsEstudiantes = datos.estudiantes</span>
+<span class="fc" id="L193">                    .filter {</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">                        tallerId != null &amp;&amp;</span>
+<span class="fc bfc" id="L195" title="All 2 branches covered.">                                tallerId in it.talleresIds</span>
+                    }
+<span class="fc" id="L197">                    .map { it.id }</span>
+<span class="fc" id="L198">                    .toSet()</span>
+
+<span class="fc" id="L200">                datos.apoderados.filter { apoderado -&gt;</span>
+<span class="fc" id="L201">                    apoderado.pupilosIds.any {</span>
+<span class="fc" id="L202">                        it in idsEstudiantes</span>
+<span class="fc" id="L203">                    }</span>
+                }
+            }
+
+            AlcanceEnvio.APODERADO_INDIVIDUAL -&gt; {
+
+                // Un envío individual debe tener un solo destinatario.
+<span class="fc" id="L210">                val coincidencias = datos.apoderados</span>
+<span class="fc" id="L211">                    .filter { it.nombreCompleto == destino }</span>
+<span class="fc" id="L212">                    .distinctBy { it.id }</span>
+
+<span class="fc bfc" id="L214" title="All 2 branches covered.">                if (coincidencias.size == 1) {</span>
+<span class="fc" id="L215">                    coincidencias</span>
+                } else {
+<span class="fc" id="L217">                    emptyList()</span>
+                }
+            }
+
+<span class="fc" id="L221">        }.distinctBy { it.id }</span>
+
+    // Valida los campos y las reglas de negocio del comunicado.
+    fun validar(
+        asunto: String,
+        cuerpo: String,
+        tipo: TipoComunicacion?,
+        alcance: AlcanceEnvio?,
+        destino: String?,
+        usuario: Usuario?,
+        datos: DatosReferencia
+    ): ErroresComunicado {
+
+        // Valida el asunto.
+<span class="fc" id="L235">        val errorAsunto = when {</span>
+
+<span class="fc bfc" id="L237" title="All 2 branches covered.">            asunto.isBlank() -&gt;</span>
+<span class="fc" id="L238">                &quot;El asunto es obligatorio&quot;</span>
+
+<span class="fc bfc" id="L240" title="All 2 branches covered.">            asunto.trim().length &lt; MIN_ASUNTO -&gt;</span>
+<span class="fc" id="L241">                &quot;El asunto debe tener al menos $MIN_ASUNTO caracteres&quot;</span>
+
+<span class="fc bfc" id="L243" title="All 2 branches covered.">            asunto.trim().length &gt; MAX_ASUNTO -&gt;</span>
+<span class="fc" id="L244">                &quot;El asunto no puede superar los $MAX_ASUNTO caracteres&quot;</span>
+
+<span class="fc" id="L246">            else -&gt; null</span>
+        }
+
+        // Valida el contenido del mensaje.
+<span class="fc" id="L250">        val errorCuerpo = when {</span>
+
+<span class="fc bfc" id="L252" title="All 2 branches covered.">            cuerpo.isBlank() -&gt;</span>
+<span class="fc" id="L253">                &quot;El cuerpo del mensaje es obligatorio&quot;</span>
+
+<span class="fc bfc" id="L255" title="All 2 branches covered.">            cuerpo.trim().length &lt; MIN_CUERPO -&gt;</span>
+<span class="fc" id="L256">                &quot;El mensaje debe tener al menos $MIN_CUERPO caracteres&quot;</span>
+
+<span class="fc bfc" id="L258" title="All 2 branches covered.">            cuerpo.trim().length &gt; MAX_CUERPO -&gt;</span>
+<span class="fc" id="L259">                &quot;El mensaje no puede superar los $MAX_CUERPO caracteres&quot;</span>
+
+<span class="fc" id="L261">            else -&gt; null</span>
+        }
+
+        // Impide enviar comunicados sin sesión.
+<span class="fc bfc" id="L265" title="All 2 branches covered.">        if (usuario == null) {</span>
+
+<span class="fc" id="L267">            return ErroresComunicado(</span>
+<span class="fc" id="L268">                asunto = errorAsunto,</span>
+<span class="fc" id="L269">                cuerpo = errorCuerpo,</span>
+<span class="fc" id="L270">                alcance = MSG_SIN_SESION</span>
+            )
+        }
+
+        // Comprueba que el tipo esté permitido.
+<span class="fc" id="L275">        val errorTipo = when {</span>
+
+<span class="fc bfc" id="L277" title="All 2 branches covered.">            tipo == null -&gt;</span>
+<span class="fc" id="L278">                &quot;Selecciona el tipo de comunicación&quot;</span>
+
+<span class="fc bfc" id="L280" title="All 2 branches covered.">            tipo !in tiposPermitidos(usuario) -&gt;</span>
+<span class="fc" id="L281">                MSG_TIPO_NO_DISPONIBLE</span>
+
+<span class="fc" id="L283">            else -&gt; null</span>
+        }
+
+<span class="fc" id="L286">        val esProfesor =</span>
+<span class="fc bfc" id="L287" title="All 2 branches covered.">            usuario.perfil == Perfil.PROFESOR_JEFE</span>
+
+        // RF-06: comprueba las restricciones del alcance.
+<span class="fc" id="L290">        val errorAlcance = when {</span>
+
+<span class="fc bfc" id="L292" title="All 2 branches covered.">            alcance == null -&gt;</span>
+<span class="fc" id="L293">                &quot;Selecciona el alcance&quot;</span>
+
+<span class="pc bpc" id="L295" title="3 of 8 branches missed.">            esProfesor &amp;&amp; usuario.cursoAsignado.isNullOrBlank() -&gt;</span>
+<span class="nc" id="L296">                MSG_SIN_CURSO</span>
+
+<span class="fc bfc" id="L298" title="All 2 branches covered.">            alcance !in alcancesPermitidos(usuario) -&gt;</span>
+
+<span class="pc bpc" id="L300" title="1 of 2 branches missed.">                if (esProfesor) {</span>
+<span class="fc" id="L301">                    MSG_SOLO_CURSO</span>
+                } else {
+<span class="nc" id="L303">                    &quot;Tu perfil no puede emitir a ${alcance.etiqueta}&quot;</span>
+                }
+
+<span class="fc bfc" id="L306" title="All 2 branches covered.">            alcance == AlcanceEnvio.COLEGIO_COMPLETO &amp;&amp;</span>
+<span class="pc bpc" id="L307" title="1 of 2 branches missed.">                    datos.apoderados.isEmpty() -&gt;</span>
+<span class="nc" id="L308">                MSG_SIN_DESTINATARIOS</span>
+
+<span class="fc" id="L310">            else -&gt; null</span>
+        }
+
+        // Valida el destino antes de registrar el envío.
+<span class="fc" id="L314">        val errorDestino = when {</span>
+
+<span class="fc bfc" id="L316" title="All 4 branches covered.">            alcance == null || errorAlcance != null -&gt;</span>
+<span class="fc" id="L317">                null</span>
+
+<span class="fc bfc" id="L319" title="All 2 branches covered.">            alcance == AlcanceEnvio.COLEGIO_COMPLETO -&gt;</span>
+<span class="fc" id="L320">                null</span>
+
+<span class="fc bfc" id="L322" title="All 6 branches covered.">            destino.isNullOrBlank() -&gt;</span>
+<span class="fc" id="L323">                &quot;Selecciona el destino&quot;</span>
+
+            // EV3: impide envíos individuales ambiguos.
+<span class="fc bfc" id="L326" title="All 2 branches covered.">            alcance == AlcanceEnvio.APODERADO_INDIVIDUAL &amp;&amp;</span>
+<span class="pc bpc" id="L327" title="1 of 2 branches missed.">                    datos.apoderados</span>
+<span class="fc" id="L328">                        .filter { it.nombreCompleto == destino }</span>
+<span class="fc" id="L329">                        .distinctBy { it.id }</span>
+<span class="fc" id="L330">                        .size &gt; 1 -&gt;</span>
+<span class="nc" id="L331">                &quot;El nombre del apoderado es ambiguo; selecciona otro destino&quot;</span>
+
+<span class="fc bfc" id="L333" title="All 2 branches covered.">            destino !in destinosPara(alcance, usuario, datos) -&gt;</span>
+
+<span class="pc bpc" id="L335" title="1 of 2 branches missed.">                if (esProfesor) {</span>
+<span class="fc" id="L336">                    MSG_SOLO_CURSO</span>
+                } else {
+<span class="nc" id="L338">                    &quot;El destino seleccionado no es válido&quot;</span>
+                }
+
+<span class="fc" id="L341">            resolverApoderados(</span>
+<span class="fc" id="L342">                alcance,</span>
+<span class="fc" id="L343">                destino,</span>
+<span class="fc" id="L344">                datos</span>
+<span class="fc bfc" id="L345" title="All 2 branches covered.">            ).isEmpty() -&gt;</span>
+<span class="fc" id="L346">                MSG_SIN_DESTINATARIOS</span>
+
+<span class="fc" id="L348">            else -&gt; null</span>
+        }
+
+        // Devuelve los errores de cada campo.
+<span class="fc" id="L352">        return ErroresComunicado(</span>
+<span class="fc" id="L353">            asunto = errorAsunto,</span>
+<span class="fc" id="L354">            cuerpo = errorCuerpo,</span>
+<span class="fc" id="L355">            tipo = errorTipo,</span>
+<span class="fc" id="L356">            alcance = errorAlcance,</span>
+<span class="fc" id="L357">            destino = errorDestino</span>
+        )
+    }
+
+    // Comprueba el formato y tamaño del PDF.
+    fun errorAdjunto(
+        tipoMime: String?,
+        tamanoBytes: Long?
+<span class="fc" id="L365">    ): String? = when {</span>
+
+<span class="fc bfc" id="L367" title="All 2 branches covered.">        tipoMime != TIPO_MIME_PDF -&gt;</span>
+<span class="fc" id="L368">            &quot;El archivo adjunto debe ser un PDF&quot;</span>
+
+<span class="pc bpc" id="L370" title="1 of 2 branches missed.">        tamanoBytes != null &amp;&amp;</span>
+<span class="fc bfc" id="L371" title="All 2 branches covered.">                tamanoBytes &gt; MAX_ADJUNTO_BYTES -&gt;</span>
+<span class="fc" id="L372">            &quot;El PDF supera el máximo de 5 MB&quot;</span>
+
+<span class="fc" id="L374">        else -&gt; null</span>
+<span class="fc" id="L375">    }</span>
+
+    // RF-12: las autorizaciones se informan por correo.
+    fun canalDe(
+        apoderado: Apoderado,
+        requiereFirmaFisica: Boolean
+    ): CanalDespacho =
+
+<span class="fc bfc" id="L383" title="All 2 branches covered.">        if (requiereFirmaFisica) {</span>
+<span class="fc" id="L384">            CanalDespacho.EMAIL</span>
+        } else {
+<span class="fc" id="L386">            apoderado.canalPreferente</span>
+<span class="fc" id="L387">        }</span>
+
+    // Retira el aviso de firma física cuando ya existe.
+    fun sinAviso(cuerpo: String): String {
+
+<span class="fc" id="L392">        val texto = cuerpo.trim()</span>
+
+<span class="fc bfc" id="L394" title="All 2 branches covered.">        return if (texto.endsWith(AVISO_FIRMA_FISICA)) {</span>
+
+<span class="fc" id="L396">            texto.removeSuffix(AVISO_FIRMA_FISICA).trim()</span>
+
+        } else {
+
+<span class="fc" id="L400">            texto</span>
+        }
+    }
+
+    // Agrega el aviso de entrega física al comunicado.
+    fun cuerpoFinal(
+        cuerpo: String,
+        requiereFirmaFisica: Boolean
+    ): String =
+
+<span class="fc bfc" id="L410" title="All 2 branches covered.">        if (requiereFirmaFisica) {</span>
+
+<span class="fc" id="L412">            &quot;${cuerpo.trim()}\n\n$AVISO_FIRMA_FISICA&quot;</span>
+
+        } else {
+
+<span class="fc" id="L416">            cuerpo.trim()</span>
+<span class="fc" id="L417">        }</span>
+
+    // RF-13: solo Inspectoría modifica el canal preferente.
+    fun puedeConfigurarCanal(usuario: Usuario?): Boolean =
+<span class="fc bfc" id="L421" title="All 4 branches covered.">        usuario?.perfil == Perfil.INSPECTORIA_GENERAL</span>
+
+    // Determina los apoderados visibles según el perfil.
+    fun apoderadosVisibles(
+        usuario: Usuario?,
+        datos: DatosReferencia
+    ): List&lt;Apoderado&gt; =
+
+<span class="pc bpc" id="L429" title="1 of 8 branches missed.">        when (usuario?.perfil) {</span>
+
+            Perfil.INSPECTORIA_GENERAL -&gt;
+<span class="fc" id="L432">                datos.apoderados</span>
+
+            Perfil.PROFESOR_JEFE -&gt;
+<span class="fc" id="L435">                apoderadosDelCurso(</span>
+<span class="fc" id="L436">                    usuario.cursoAsignado,</span>
+<span class="fc" id="L437">                    datos</span>
+                )
+
+<span class="fc" id="L440">            null -&gt; emptyList()</span>
+<span class="fc" id="L441">        }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

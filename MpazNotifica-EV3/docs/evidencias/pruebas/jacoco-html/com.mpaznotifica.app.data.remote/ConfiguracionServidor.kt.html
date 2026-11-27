@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConfiguracionServidor.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.data.remote</a> &gt; <span class="el_source">ConfiguracionServidor.kt</span></div><h1>ConfiguracionServidor.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.data.remote
+
+import android.content.Context
+
+/** Almacén de la dirección elegida por el usuario (separado de Android para poder probarlo). */
+interface AlmacenUrl {
+    fun leer(): String?
+    fun guardar(url: String)
+    fun borrar()
+}
+
+/** SharedPreferences privadas de la app: la dirección persiste entre aperturas. Ya implementada. */
+<span class="nc" id="L13">class PreferenciasUrl(contexto: Context) : AlmacenUrl {</span>
+    private val preferencias =
+<span class="nc" id="L15">        contexto.applicationContext.getSharedPreferences(&quot;mpaz_servidor&quot;, Context.MODE_PRIVATE)</span>
+
+<span class="nc" id="L17">    override fun leer(): String? = preferencias.getString(CLAVE, null)</span>
+
+    override fun guardar(url: String) {
+<span class="nc" id="L20">        preferencias.edit().putString(CLAVE, url).apply()</span>
+<span class="nc" id="L21">    }</span>
+
+    override fun borrar() {
+<span class="nc" id="L24">        preferencias.edit().remove(CLAVE).apply()</span>
+<span class="nc" id="L25">    }</span>
+
+    private companion object {
+        const val CLAVE = &quot;url_base&quot;
+    }
+}
+
+/**
+ * EXPERIENCIA 3 - Parte 3 (TODO E3-9b): dirección activa del servidor.
+ *
+ * Prioridad: la que guardó el usuario en el diálogo &quot;Servidor&quot;; si no hay (o dejó de ser válida),
+ * la de compilación ([urlCompilacion] = BuildConfig.API_BASE_URL, desde gradle.properties); si
+ * tampoco es válida, [UrlServidor.DEFECTO].
+ */
+<span class="nc" id="L39">class ConfiguracionServidor(</span>
+<span class="nc" id="L40">    private val almacen: AlmacenUrl,</span>
+<span class="nc" id="L41">    private val urlCompilacion: String</span>
+) {
+    /**
+     * TODO(E3-9b): dirección en uso, siempre válida y terminada en &quot;/&quot;.
+     * Criterio: guardada válida &gt; compilación válida &gt; [UrlServidor.DEFECTO]; el resultado pasa
+     * por [UrlServidor.normalizar].
+     */
+    fun urlBase(): String =
+<span class="nc" id="L49">        TODO(&quot;E3-9b: elegir entre almacen.leer(), urlCompilacion y UrlServidor.DEFECTO usando UrlServidor.esValida&quot;)</span>
+
+    /**
+     * TODO(E3-9b): guarda la dirección si es válida. Devuelve el mensaje de error de
+     * [UrlServidor.validar] o null si se guardó. Lo que se guarda va normalizado (con &quot;/&quot; final).
+     * Si hay error NO se escribe nada en el almacén.
+     */
+    fun guardar(texto: String): String? =
+<span class="nc" id="L57">        TODO(&quot;E3-9b: validar, normalizar y almacen.guardar(...)&quot;)</span>
+
+    /** TODO(E3-9b): vuelve a la dirección de compilación (borra la guardada). */
+    fun restaurar(): Unit =
+<span class="nc" id="L61">        TODO(&quot;E3-9b: almacen.borrar()&quot;)</span>
+
+    /** Dirección de compilación normalizada (ya implementada). */
+<span class="nc" id="L64">    val valorCompilacion: String get() = UrlServidor.normalizar(urlCompilacion)</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

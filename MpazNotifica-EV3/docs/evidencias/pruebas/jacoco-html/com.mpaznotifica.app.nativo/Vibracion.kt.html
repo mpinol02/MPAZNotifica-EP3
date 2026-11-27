@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Vibracion.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.nativo</a> &gt; <span class="el_source">Vibracion.kt</span></div><h1>Vibracion.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.nativo
+
+import android.content.Context
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
+
+/**
+ * RECURSO NATIVO: vibración corta que acompaña la alerta visual del resultado de un envío.
+ * Requiere el permiso VIBRATE (normal, sin solicitud en tiempo de ejecución).
+ */
+object Vibracion {
+
+<span class="nc" id="L15">    @Suppress(&quot;DEPRECATION&quot;)</span>
+<span class="nc" id="L16">    fun confirmar(context: Context, exito: Boolean = true) {</span>
+<span class="nc" id="L17">        try {</span>
+<span class="nc bnc" id="L18" title="All 2 branches missed.">            val vibrador = obtenerVibrador(context) ?: return</span>
+<span class="nc bnc" id="L19" title="All 2 branches missed.">            if (!vibrador.hasVibrator()) return</span>
+            // Un pulso breve si todo salió bien; dos pulsos si hubo fallidos.
+<span class="nc bnc" id="L21" title="All 2 branches missed.">            val patron = if (exito) longArrayOf(0, 120) else longArrayOf(0, 120, 90, 120)</span>
+<span class="nc bnc" id="L22" title="All 2 branches missed.">            if (Build.VERSION.SDK_INT &gt;= Build.VERSION_CODES.O) {</span>
+<span class="nc" id="L23">                vibrador.vibrate(VibrationEffect.createWaveform(patron, -1))</span>
+            } else {
+<span class="nc" id="L25">                vibrador.vibrate(patron, -1)</span>
+            }
+<span class="nc" id="L27">        } catch (e: Exception) {</span>
+            // Si el dispositivo no puede vibrar, la alerta visual igual se muestra.
+        }
+<span class="nc" id="L30">    }</span>
+
+    @Suppress(&quot;DEPRECATION&quot;)
+    private fun obtenerVibrador(context: Context): Vibrator? =
+<span class="nc bnc" id="L34" title="All 2 branches missed.">        if (Build.VERSION.SDK_INT &gt;= Build.VERSION_CODES.S) {</span>
+<span class="nc bnc" id="L35" title="All 4 branches missed.">            (context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator</span>
+        } else {
+<span class="nc bnc" id="L37" title="All 2 branches missed.">            context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator</span>
+<span class="nc" id="L38">        }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

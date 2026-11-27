@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AppDatabase.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.data.local</a> &gt; <span class="el_source">AppDatabase.kt</span></div><h1>AppDatabase.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.data.local
+
+import android.content.Context
+import androidx.room.Database
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
+
+/**
+ * Base de datos única de MPAZ Notifica (Room + SQLite). Contiene los datos de referencia
+ * (usuarios, apoderados, estudiantes, talleres) y la bitácora (comunicaciones y envíos).
+ *
+ * Se usa con dos archivos distintos y sin relación entre sí: la CACHÉ de lo que entrega la API
+ * (backend/), cuya fuente de verdad es el servidor, y la base propia del MODO LOCAL
+ * (obtenerLocal), que funciona sin servidor.
+ *
+ * Versión 1. Si más adelante se cambian las entidades, subir la versión: mientras se desarrolla,
+ * fallbackToDestructiveMigration() recrea la base (y la vuelve a sembrar) en lugar de fallar.
+ */
+<span class="fc" id="L20">@Database(</span>
+    entities = [
+        UsuarioEntity::class,
+        ApoderadoEntity::class,
+        EstudianteEntity::class,
+        TallerEntity::class,
+        EstudianteTallerEntity::class,
+        ComunicacionEntity::class,
+        EnvioEntity::class
+    ],
+    version = 1,
+    exportSchema = false
+)
+<span class="fc" id="L33">abstract class AppDatabase : RoomDatabase() {</span>
+
+    abstract fun usuarioDao(): UsuarioDao
+    abstract fun apoderadoDao(): ApoderadoDao
+    abstract fun estudianteDao(): EstudianteDao
+    abstract fun comunicacionDao(): ComunicacionDao
+
+    companion object {
+        /** Caché de lo que entrega el servidor (modo servidor). */
+        private const val NOMBRE = &quot;mpaz_notifica.db&quot;
+
+        /** Datos propios del modo local: otro archivo, independiente de la caché del servidor. */
+        const val NOMBRE_LOCAL = &quot;mpaz_local.db&quot;
+
+<span class="fc" id="L47">        private val instancias = HashMap&lt;String, AppDatabase&gt;()</span>
+
+<span class="fc" id="L49">        private val TABLAS_PROTEGIDAS = listOf(&quot;comunicaciones&quot;, &quot;envios&quot;)</span>
+
+        /** Crea (si no existen) los disparadores que rechazan UPDATE y DELETE sobre la bitácora. */
+        fun crearProteccion(db: SupportSQLiteDatabase) {
+<span class="fc bfc" id="L53" title="All 2 branches covered.">            for (tabla in TABLAS_PROTEGIDAS) {</span>
+<span class="fc" id="L54">                db.execSQL(</span>
+<span class="fc" id="L55">                    &quot;CREATE TRIGGER IF NOT EXISTS ${tabla}_inmutable_update BEFORE UPDATE ON $tabla &quot; +</span>
+                        &quot;BEGIN SELECT RAISE(ABORT, 'RN-02: el registro enviado es inmutable'); END&quot;
+                )
+<span class="fc" id="L58">                db.execSQL(</span>
+<span class="fc" id="L59">                    &quot;CREATE TRIGGER IF NOT EXISTS ${tabla}_inmutable_delete BEFORE DELETE ON $tabla &quot; +</span>
+                        &quot;BEGIN SELECT RAISE(ABORT, 'RN-02: el registro enviado es inmutable'); END&quot;
+                )
+            }
+<span class="fc" id="L63">        }</span>
+
+        /**
+         * Solo para espejar la caché con el servidor (RoomCache.reemplazarBitacora, dentro de una
+         * transacción): quita los disparadores de DELETE. UPDATE sigue bloqueado siempre.
+         */
+        fun quitarProteccionBorrado(db: SupportSQLiteDatabase) {
+<span class="fc bfc" id="L70" title="All 2 branches covered.">            for (tabla in TABLAS_PROTEGIDAS) {</span>
+<span class="fc" id="L71">                db.execSQL(&quot;DROP TRIGGER IF EXISTS ${tabla}_inmutable_delete&quot;)</span>
+            }
+<span class="fc" id="L73">        }</span>
+
+        /** Instancia única por archivo (patrón Singleton): la caché del servidor o, con [NOMBRE_LOCAL], la local. */
+<span class="nc" id="L76">        fun obtener(context: Context, nombre: String = NOMBRE): AppDatabase =</span>
+<span class="nc" id="L77">            synchronized(instancias) {</span>
+<span class="nc" id="L78">                instancias.getOrPut(nombre) {</span>
+<span class="nc" id="L79">                    Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, nombre)</span>
+<span class="nc" id="L80">                        .addCallback(ProteccionBitacora)</span>
+<span class="nc" id="L81">                        .fallbackToDestructiveMigration()</span>
+<span class="nc" id="L82">                        .build()</span>
+<span class="nc" id="L83">                }</span>
+<span class="nc" id="L84">            }</span>
+
+        /** Base del modo local (independiente de la caché del servidor). */
+<span class="nc" id="L87">        fun obtenerLocal(context: Context): AppDatabase = obtener(context, NOMBRE_LOCAL)</span>
+    }
+
+    /**
+     * RN-02: la bitácora es inmutable. Además de no ofrecer @Update/@Delete en uso, la base
+     * rechaza cualquier UPDATE o DELETE sobre comunicaciones y envíos mediante disparadores.
+     */
+    private object ProteccionBitacora : RoomDatabase.Callback() {
+        override fun onOpen(db: SupportSQLiteDatabase) {
+<span class="nc" id="L96">            super.onOpen(db)</span>
+<span class="nc" id="L97">            AppDatabase.crearProteccion(db)</span>
+<span class="nc" id="L98">        }</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

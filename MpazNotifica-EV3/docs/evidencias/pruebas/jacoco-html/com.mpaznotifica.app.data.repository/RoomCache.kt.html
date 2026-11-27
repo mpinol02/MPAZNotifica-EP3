@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RoomCache.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.data.repository</a> &gt; <span class="el_source">RoomCache.kt</span></div><h1>RoomCache.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.data.repository
+
+import androidx.room.withTransaction
+import com.mpaznotifica.app.data.MockData
+import com.mpaznotifica.app.data.local.AppDatabase
+import com.mpaznotifica.app.data.local.EstudianteEntity
+import com.mpaznotifica.app.data.local.EstudianteTallerEntity
+import com.mpaznotifica.app.data.local.TallerEntity
+import com.mpaznotifica.app.data.local.aEntidad
+import com.mpaznotifica.app.data.local.aModelo
+import com.mpaznotifica.app.model.Apoderado
+import com.mpaznotifica.app.model.CanalDespacho
+import com.mpaznotifica.app.model.Comunicacion
+import com.mpaznotifica.app.model.EnvioDestinatario
+import com.mpaznotifica.app.model.Estudiante
+import com.mpaznotifica.app.model.Taller
+import com.mpaznotifica.app.model.Usuario
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+/**
+ * Caché local en Room: la pantalla siempre lee de aquí (Flow), y [MpazRepository] la mantiene al
+ * día con lo que entrega el servidor. Sin conexión, la app sigue mostrando lo último sincronizado.
+ */
+<span class="fc" id="L28">class RoomCache(private val db: AppDatabase) : AlmacenLocal {</span>
+
+<span class="fc" id="L30">    private val usuarioDao = db.usuarioDao()</span>
+<span class="fc" id="L31">    private val apoderadoDao = db.apoderadoDao()</span>
+<span class="fc" id="L32">    private val estudianteDao = db.estudianteDao()</span>
+<span class="fc" id="L33">    private val comunicacionDao = db.comunicacionDao()</span>
+
+<span class="fc" id="L35">    private val candadoSembrado = Mutex()</span>
+    private var sembrada = false
+
+<span class="fc" id="L38">    override val usuarios: Flow&lt;List&lt;Usuario&gt;&gt; =</span>
+<span class="fc" id="L39">        usuarioDao.observarTodos().map { lista -&gt; lista.map { it.aModelo() } }</span>
+
+<span class="fc" id="L41">    override val talleres: Flow&lt;List&lt;Taller&gt;&gt; =</span>
+<span class="fc" id="L42">        estudianteDao.observarTalleres().map { lista -&gt; lista.map { Taller(it.id, it.nombre) } }</span>
+
+<span class="fc" id="L44">    override val estudiantes: Flow&lt;List&lt;Estudiante&gt;&gt; =</span>
+<span class="pc bpc" id="L45" title="1 of 2 branches missed.">        combine(estudianteDao.observarEstudiantes(), estudianteDao.observarInscripciones()) { filas, inscripciones -&gt;</span>
+<span class="fc" id="L46">            filas.map { fila -&gt;</span>
+<span class="fc" id="L47">                Estudiante(</span>
+<span class="fc" id="L48">                    id = fila.id,</span>
+<span class="fc" id="L49">                    nombreReferencial = fila.nombreReferencial,</span>
+<span class="fc" id="L50">                    curso = fila.curso,</span>
+<span class="fc" id="L51">                    talleresIds = inscripciones.filter { it.estudianteId == fila.id }.map { it.tallerId }</span>
+<span class="fc" id="L52">                )</span>
+<span class="fc" id="L53">            }</span>
+        }
+
+<span class="fc" id="L56">    override val apoderados: Flow&lt;List&lt;Apoderado&gt;&gt; =</span>
+<span class="pc bpc" id="L57" title="1 of 2 branches missed.">        combine(apoderadoDao.observarTodos(), estudianteDao.observarEstudiantes()) { filas, estudiantes -&gt;</span>
+<span class="fc" id="L58">            filas.map { fila -&gt;</span>
+<span class="fc" id="L59">                fila.aModelo(estudiantes.filter { it.apoderadoId == fila.id }.map { it.id })</span>
+<span class="fc" id="L60">            }</span>
+        }
+
+<span class="fc" id="L63">    override val comunicaciones: Flow&lt;List&lt;Comunicacion&gt;&gt; =</span>
+<span class="fc" id="L64">        comunicacionDao.observarTodas().map { lista -&gt; lista.map { it.aModelo() } }</span>
+
+<span class="fc" id="L66">    override val envios: Flow&lt;List&lt;EnvioDestinatario&gt;&gt; =</span>
+<span class="fc" id="L67">        comunicacionDao.observarEnvios().map { lista -&gt; lista.map { it.aModelo() } }</span>
+
+    override suspend fun asegurarDatosIniciales() {
+<span class="fc" id="L70">        candadoSembrado.withLock {</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">            if (sembrada) return</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">            if (usuarioDao.contar() == 0) {</span>
+<span class="fc" id="L73">                db.withTransaction {</span>
+<span class="fc" id="L74">                    usuarioDao.insertarTodos(MockData.usuarios.map { it.aEntidad() })</span>
+<span class="fc" id="L75">                    apoderadoDao.insertarTodos(MockData.apoderados.map { it.aEntidad() })</span>
+<span class="fc" id="L76">                    estudianteDao.insertarTalleres(MockData.talleres.map { TallerEntity(it.id, it.nombre) })</span>
+<span class="fc" id="L77">                    estudianteDao.insertarEstudiantes(</span>
+<span class="fc" id="L78">                        MockData.estudiantes.map { estudiante -&gt;</span>
+<span class="fc" id="L79">                            val apoderado = MockData.apoderados.first { estudiante.id in it.pupilosIds }</span>
+<span class="fc" id="L80">                            EstudianteEntity(estudiante.id, estudiante.nombreReferencial, estudiante.curso, apoderado.id)</span>
+                        }
+                    )
+<span class="fc" id="L83">                    estudianteDao.insertarInscripciones(</span>
+<span class="fc" id="L84">                        MockData.estudiantes.flatMap { e -&gt; e.talleresIds.map { EstudianteTallerEntity(e.id, it) } }</span>
+                    )
+<span class="fc" id="L86">                    MockData.comunicados.forEach { comunicacionDao.insertar(it.aEntidad()) }</span>
+<span class="fc" id="L87">                    comunicacionDao.insertarEnvios(MockData.envios.map { it.aEntidad() })</span>
+<span class="fc" id="L88">                }</span>
+            }
+<span class="fc" id="L90">            sembrada = true</span>
+<span class="fc" id="L91">        }</span>
+<span class="fc" id="L92">    }</span>
+
+    /**
+     * Modo local: deja la base como en la primera apertura. La bitácora se vacía y se vuelve a
+     * cargar desde MockData (con los disparadores de RN-02 quitados solo durante la transacción);
+     * los apoderados vuelven a su canal preferente de ejemplo.
+     */
+    override suspend fun restablecer() {
+<span class="fc" id="L100">        candadoSembrado.withLock {</span>
+<span class="fc" id="L101">            db.withTransaction {</span>
+<span class="fc" id="L102">                val base = db.openHelper.writableDatabase</span>
+<span class="fc" id="L103">                AppDatabase.quitarProteccionBorrado(base)</span>
+<span class="fc" id="L104">                comunicacionDao.borrarEnvios()</span>
+<span class="fc" id="L105">                comunicacionDao.borrarComunicaciones()</span>
+<span class="fc" id="L106">                AppDatabase.crearProteccion(base)</span>
+<span class="fc" id="L107">                apoderadoDao.upsertTodos(MockData.apoderados.map { it.aEntidad() })</span>
+<span class="fc" id="L108">                MockData.comunicados.forEach { comunicacionDao.insertar(it.aEntidad()) }</span>
+<span class="fc" id="L109">                comunicacionDao.insertarEnvios(MockData.envios.map { it.aEntidad() })</span>
+<span class="fc" id="L110">            }</span>
+<span class="fc" id="L111">            sembrada = true</span>
+<span class="fc" id="L112">        }</span>
+<span class="fc" id="L113">    }</span>
+
+    override suspend fun buscarUsuario(correo: String): Usuario? =
+<span class="fc bfc" id="L116" title="All 2 branches covered.">        usuarioDao.buscarPorUsuario(correo.trim())?.aModelo()</span>
+
+    override suspend fun guardarReferencia(referencia: ReferenciaRemota) {
+<span class="pc" id="L119">        db.withTransaction {</span>
+            // Usuarios: se actualizan los datos públicos y se conserva el hash local ya existente.
+<span class="fc bfc" id="L121" title="All 2 branches covered.">            for (usuario in referencia.usuarios) {</span>
+<span class="fc" id="L122">                val actualizados = usuarioDao.actualizarDatos(</span>
+<span class="fc" id="L123">                    usuario.id, usuario.nombre, usuario.usuario, usuario.perfil.name, usuario.cursoAsignado</span>
+                )
+<span class="fc bfc" id="L125" title="All 2 branches covered.">                if (actualizados == 0) usuarioDao.insertarTodos(listOf(usuario.aEntidad()))</span>
+            }
+<span class="fc" id="L127">            apoderadoDao.upsertTodos(referencia.apoderados.map { it.aEntidad() })</span>
+<span class="fc" id="L128">            estudianteDao.upsertTalleres(referencia.talleres.map { TallerEntity(it.id, it.nombre) })</span>
+<span class="fc" id="L129">            estudianteDao.upsertEstudiantes(</span>
+<span class="fc" id="L130">                referencia.estudiantes.map {</span>
+<span class="fc" id="L131">                    EstudianteEntity(</span>
+<span class="fc" id="L132">                        it.estudiante.id, it.estudiante.nombreReferencial, it.estudiante.curso, it.apoderadoId</span>
+<span class="fc" id="L133">                    )</span>
+                }
+            )
+<span class="fc" id="L136">            val ids = referencia.estudiantes.map { it.estudiante.id }</span>
+<span class="fc" id="L137">            ids.chunked(500).forEach { estudianteDao.borrarInscripcionesDe(it) }</span>
+<span class="fc" id="L138">            estudianteDao.insertarInscripciones(</span>
+<span class="fc" id="L139">                referencia.estudiantes.flatMap { r -&gt;</span>
+<span class="fc" id="L140">                    r.estudiante.talleresIds.map { EstudianteTallerEntity(r.estudiante.id, it) }</span>
+                }
+            )
+<span class="fc" id="L143">        }</span>
+<span class="nc" id="L144">    }</span>
+
+    override suspend fun reemplazarBitacora(comunicaciones: List&lt;Comunicacion&gt;, envios: List&lt;EnvioDestinatario&gt;) {
+<span class="pc" id="L147">        db.withTransaction {</span>
+            // Mantenimiento de la copia local: se quitan un momento los disparadores de RN-02 para
+            // espejar al servidor (fuente de verdad). Si algo falla, la transacción se revierte
+            // completa y los disparadores quedan intactos.
+<span class="fc" id="L151">            val base = db.openHelper.writableDatabase</span>
+<span class="fc" id="L152">            AppDatabase.quitarProteccionBorrado(base)</span>
+<span class="fc" id="L153">            comunicacionDao.borrarEnvios()</span>
+<span class="fc" id="L154">            comunicacionDao.borrarComunicaciones()</span>
+<span class="fc" id="L155">            AppDatabase.crearProteccion(base)</span>
+<span class="fc" id="L156">            comunicaciones.forEach { comunicacionDao.insertar(it.aEntidad()) }</span>
+<span class="fc" id="L157">            comunicacionDao.insertarEnvios(envios.map { it.aEntidad() })</span>
+<span class="fc" id="L158">        }</span>
+<span class="nc" id="L159">    }</span>
+
+    override suspend fun guardarRegistro(comunicacion: Comunicacion, envios: List&lt;EnvioDestinatario&gt;) {
+<span class="pc" id="L162">        db.withTransaction {</span>
+<span class="fc" id="L163">            comunicacionDao.insertarOIgnorar(comunicacion.aEntidad())</span>
+<span class="fc" id="L164">            comunicacionDao.insertarEnviosOIgnorar(envios.map { it.aEntidad() })</span>
+<span class="fc" id="L165">        }</span>
+<span class="nc" id="L166">    }</span>
+
+    override suspend fun guardarCanal(apoderadoId: String, canal: CanalDespacho): Boolean =
+<span class="fc bfc" id="L169" title="All 2 branches covered.">        apoderadoDao.actualizarCanal(apoderadoId, canal.name) &gt; 0</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

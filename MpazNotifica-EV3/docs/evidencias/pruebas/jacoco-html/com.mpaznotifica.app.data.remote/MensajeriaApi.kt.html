@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MensajeriaApi.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.data.remote</a> &gt; <span class="el_source">MensajeriaApi.kt</span></div><h1>MensajeriaApi.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.data.remote
+
+import com.mpaznotifica.app.model.CanalDespacho
+import retrofit2.http.Body
+import retrofit2.http.POST
+
+/**
+ * Contrato del servicio de mensajería (RF-07): una llamada despacha UN mensaje por su canal.
+ * [ApiClient] lo instancia con Retrofit contra el backend (POST /mensajes, servicio de correo, SMS
+ * y WhatsApp simulado en el servidor). [MensajeriaSimulada] es una implementación local sin red
+ * que usan las pruebas JVM del despachador.
+ *
+ * Un contacto inválido para el canal NO es un error HTTP: la respuesta es 200 con
+ * [RespuestaEnvioDto.despachado] en falso y el motivo en [RespuestaEnvioDto.detalle].
+ */
+interface MensajeriaApi {
+    @POST(&quot;mensajes&quot;)
+    suspend fun enviar(@Body mensaje: MensajeDto): RespuestaEnvioDto
+}
+
+/** Mensaje hacia UN destinatario; [destinatario] es el correo o el teléfono (ficticio) del canal. */
+<span class="fc" id="L22">data class MensajeDto(</span>
+<span class="pc" id="L23">    val comunicacionId: String,</span>
+<span class="pc" id="L24">    val asunto: String,</span>
+<span class="pc" id="L25">    val cuerpo: String,</span>
+<span class="pc" id="L26">    val tipo: String,</span>
+<span class="fc" id="L27">    val canal: CanalDespacho,</span>
+<span class="fc" id="L28">    val destinatario: String,</span>
+<span class="pc" id="L29">    val adjunto: String?</span>
+)
+
+<span class="pc" id="L32">data class RespuestaEnvioDto(</span>
+<span class="pc" id="L33">    val despachado: Boolean = false,</span>
+<span class="pc" id="L34">    val detalle: String = &quot;&quot;</span>
+<span class="nc" id="L35">)</span>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

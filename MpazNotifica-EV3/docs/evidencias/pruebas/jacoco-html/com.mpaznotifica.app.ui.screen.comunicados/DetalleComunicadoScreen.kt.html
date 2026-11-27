@@ -1,0 +1,425 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DetalleComunicadoScreen.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.ui.screen.comunicados</a> &gt; <span class="el_source">DetalleComunicadoScreen.kt</span></div><h1>DetalleComunicadoScreen.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.ui.screen.comunicados
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
+import com.mpaznotifica.app.domain.Fechas
+import com.mpaznotifica.app.model.Apoderado
+import com.mpaznotifica.app.model.EnvioDestinatario
+import com.mpaznotifica.app.model.EstadoEnvio
+import com.mpaznotifica.app.nativo.ArchivosPdf
+import com.mpaznotifica.app.ui.components.AvisoCard
+import com.mpaznotifica.app.ui.components.BarraSuperior
+import com.mpaznotifica.app.ui.components.EstadoVacio
+import com.mpaznotifica.app.ui.components.icono
+import com.mpaznotifica.app.viewmodel.MpazNotificaViewModel
+
+/**
+ * Muestra el detalle de un comunicado registrado.
+ *
+ * RF-08: estado del envío por destinatario.
+ * RF-11: trazabilidad del comunicado.
+ * RN-02: registro inmutable, solo lectura.
+ *
+ * EV3: permite abrir el PDF almacenado internamente
+ * mediante FileProvider.
+ */
+@Composable
+fun DetalleComunicadoScreen(
+    navController: NavHostController,
+    viewModel: MpazNotificaViewModel,
+    comunicadoId: String?
+<span class="nc" id="L67">) {</span>
+
+    // Obtiene el contexto de Android para abrir el PDF.
+<span class="nc" id="L70">    val context = LocalContext.current</span>
+
+    // Observa los datos almacenados mediante StateFlow.
+<span class="nc" id="L73">    val comunicados by viewModel.comunicados.collectAsState()</span>
+<span class="nc" id="L74">    val todosLosEnvios by viewModel.envios.collectAsState()</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">    val datos by viewModel.datos.collectAsState()</span>
+
+    // EV3: almacena posibles errores al abrir el documento.
+<span class="nc bnc" id="L78" title="All 4 branches missed.">    var errorPdf by remember(comunicadoId) {</span>
+<span class="nc" id="L79">        mutableStateOf&lt;String?&gt;(null)</span>
+    }
+
+    // Busca el comunicado mediante su identificador.
+<span class="nc bnc" id="L83" title="All 4 branches missed.">    val comunicado = comunicados.find {</span>
+<span class="nc" id="L84">        it.id == comunicadoId</span>
+    }
+
+    // Filtra los envíos asociados al comunicado seleccionado.
+<span class="nc bnc" id="L88" title="All 6 branches missed.">    val envios = remember(todosLosEnvios, comunicadoId) {</span>
+<span class="nc" id="L89">        todosLosEnvios.filter {</span>
+<span class="nc" id="L90">            it.comunicacionId == comunicadoId</span>
+<span class="nc" id="L91">        }</span>
+    }
+
+<span class="nc bnc" id="L94" title="All 2 branches missed.">    Scaffold(</span>
+<span class="nc" id="L95">        topBar = {</span>
+<span class="nc bnc" id="L96" title="All 4 branches missed.">            BarraSuperior(</span>
+<span class="nc" id="L97">                &quot;Detalle del comunicado&quot;,</span>
+<span class="nc" id="L98">                navController</span>
+<span class="nc" id="L99">            )</span>
+<span class="nc" id="L100">        }</span>
+<span class="nc" id="L101">    ) { padding -&gt;</span>
+
+        // Informa si el comunicado solicitado no existe.
+<span class="nc bnc" id="L104" title="All 6 branches missed.">        if (comunicado == null) {</span>
+<span class="nc" id="L105">            EstadoVacio(</span>
+<span class="nc" id="L106">                icono = Icons.Filled.Warning,</span>
+<span class="nc" id="L107">                titulo = &quot;Comunicado no encontrado&quot;,</span>
+<span class="nc" id="L108">                detalle = &quot;El registro solicitado no existe en la bitácora.&quot;,</span>
+<span class="nc" id="L109">                modifier = Modifier.padding(padding)</span>
+            )
+<span class="nc" id="L111">            return@Scaffold</span>
+        }
+
+<span class="nc" id="L114">        Column(</span>
+<span class="nc" id="L115">            modifier = Modifier</span>
+<span class="nc" id="L116">                .padding(padding)</span>
+<span class="nc" id="L117">                .fillMaxSize()</span>
+<span class="nc" id="L118">                .verticalScroll(rememberScrollState())</span>
+<span class="nc" id="L119">                .padding(16.dp),</span>
+<span class="nc" id="L120">            verticalArrangement = Arrangement.spacedBy(10.dp)</span>
+        ) {
+
+            // =============================================
+            // INFORMACIÓN DEL COMUNICADO
+            // =============================================
+
+<span class="nc" id="L127">            Card(</span>
+<span class="nc" id="L128">                modifier = Modifier.fillMaxWidth()</span>
+<span class="nc" id="L129">            ) {</span>
+
+<span class="nc bnc" id="L131" title="All 4 branches missed.">                Column(</span>
+<span class="nc" id="L132">                    modifier = Modifier.padding(16.dp),</span>
+<span class="nc" id="L133">                    verticalArrangement = Arrangement.spacedBy(4.dp)</span>
+                ) {
+
+<span class="nc" id="L136">                    Text(</span>
+<span class="nc" id="L137">                        comunicado.asunto,</span>
+<span class="nc" id="L138">                        style = MaterialTheme.typography.titleLarge</span>
+                    )
+
+<span class="nc" id="L141">                    Text(</span>
+<span class="nc" id="L142">                        comunicado.cuerpo,</span>
+<span class="nc" id="L143">                        style = MaterialTheme.typography.bodyMedium</span>
+                    )
+
+<span class="nc" id="L146">                    HorizontalDivider(</span>
+<span class="nc" id="L147">                        modifier = Modifier.padding(vertical = 8.dp)</span>
+                    )
+
+<span class="nc" id="L150">                    Text(</span>
+<span class="nc" id="L151">                        &quot;Tipo: ${comunicado.tipo.etiqueta}&quot;</span>
+                    )
+
+<span class="nc" id="L154">                    Text(</span>
+<span class="nc" id="L155">                        &quot;Alcance: ${comunicado.alcance.etiqueta}&quot; +</span>
+<span class="nc bnc" id="L156" title="All 4 branches missed.">                                (comunicado.destinoReferencia?.let {</span>
+<span class="nc" id="L157">                                    &quot; ($it)&quot;</span>
+<span class="nc" id="L158">                                } ?: &quot;&quot;)</span>
+                    )
+
+<span class="nc" id="L161">                    Text(</span>
+<span class="nc" id="L162">                        &quot;Autor: ${comunicado.autorNombre}&quot;</span>
+                    )
+
+<span class="nc" id="L165">                    Text(</span>
+<span class="nc" id="L166">                        &quot;Fecha y hora: ${Fechas.legible(comunicado.fechaHora)}&quot;</span>
+                    )
+
+                    // =====================================
+                    // DOCUMENTO PDF ADJUNTO
+                    // =====================================
+
+<span class="nc" id="L173">                    val nombrePdf = comunicado.adjuntoPdfNombre</span>
+
+                    // Muestra el nombre del documento registrado.
+<span class="nc" id="L176">                    Row(</span>
+<span class="nc" id="L177">                        verticalAlignment = Alignment.CenterVertically</span>
+                    ) {
+
+<span class="nc" id="L180">                        Icon(</span>
+<span class="nc" id="L181">                            imageVector = Icons.Filled.AttachFile,</span>
+<span class="nc" id="L182">                            contentDescription = null,</span>
+<span class="nc" id="L183">                            modifier = Modifier.size(18.dp)</span>
+                        )
+
+<span class="nc" id="L186">                        Spacer(</span>
+<span class="nc" id="L187">                            modifier = Modifier.width(4.dp)</span>
+                        )
+
+<span class="nc" id="L190">                        Text(</span>
+<span class="nc bnc" id="L191" title="All 2 branches missed.">                            &quot;Adjunto: ${nombrePdf ?: &quot;sin adjunto&quot;}&quot;</span>
+                        )
+<span class="nc" id="L193">                    }</span>
+
+                    // EV3: muestra el botón si existe un PDF asociado.
+<span class="nc bnc" id="L196" title="All 6 branches missed.">                    if (!nombrePdf.isNullOrBlank()) {</span>
+
+<span class="nc" id="L198">                        OutlinedButton(</span>
+<span class="nc" id="L199">                            modifier = Modifier.fillMaxWidth(),</span>
+                            onClick = {
+
+                                // Recupera el PDF mediante el ID del comunicado.
+<span class="nc" id="L203">                                errorPdf = ArchivosPdf.abrirPdf(</span>
+<span class="nc" id="L204">                                    context = context,</span>
+<span class="nc" id="L205">                                    comunicacionId = comunicado.id,</span>
+<span class="nc" id="L206">                                    nombre = nombrePdf</span>
+                                )
+<span class="nc" id="L208">                            }</span>
+                        ) {
+
+                            Icon(
+                                imageVector = Icons.Filled.AttachFile,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+
+                            Spacer(
+                                modifier = Modifier.width(8.dp)
+                            )
+
+                            Text(&quot;Abrir PDF&quot;)
+                        }
+                    }
+<span class="nc" id="L224">                }</span>
+<span class="nc" id="L225">            }</span>
+
+            // =============================================
+            // AUTORIZACIÓN CON FIRMA FÍSICA
+            // =============================================
+
+<span class="nc bnc" id="L231" title="All 2 branches missed.">            if (comunicado.requiereFirmaFisica) {</span>
+
+<span class="nc" id="L233">                AvisoCard(</span>
+<span class="nc" id="L234">                    texto = &quot;Autorización con firma legal: se notificó por correo. Corresponde la entrega &quot; +</span>
+                            &quot;física del documento firmado a mano; la app no captura firmas.&quot;,
+<span class="nc" id="L236">                    icono = Icons.Filled.Warning</span>
+                )
+            }
+
+            // =============================================
+            // INMUTABILIDAD DEL COMUNICADO
+            // =============================================
+
+            // RN-02: los comunicados enviados son de solo lectura.
+<span class="nc" id="L245">            Row(</span>
+<span class="nc" id="L246">                verticalAlignment = Alignment.CenterVertically</span>
+            ) {
+
+<span class="nc" id="L249">                Icon(</span>
+<span class="nc" id="L250">                    imageVector = Icons.Filled.Lock,</span>
+<span class="nc" id="L251">                    contentDescription = null,</span>
+<span class="nc" id="L252">                    modifier = Modifier.size(16.dp),</span>
+<span class="nc" id="L253">                    tint = MaterialTheme.colorScheme.onSurfaceVariant</span>
+                )
+
+<span class="nc" id="L256">                Spacer(</span>
+<span class="nc" id="L257">                    modifier = Modifier.width(6.dp)</span>
+                )
+
+<span class="nc" id="L260">                Text(</span>
+<span class="nc" id="L261">                    text = &quot;Registro inmutable: no se puede editar ni eliminar.&quot;,</span>
+<span class="nc" id="L262">                    style = MaterialTheme.typography.labelMedium,</span>
+<span class="nc" id="L263">                    color = MaterialTheme.colorScheme.onSurfaceVariant</span>
+                )
+<span class="nc" id="L265">            }</span>
+
+            // =============================================
+            // RESUMEN DE DESTINATARIOS
+            // =============================================
+
+            // Cuenta los destinatarios despachados correctamente.
+<span class="nc" id="L272">            val despachados = envios.count {</span>
+<span class="nc bnc" id="L273" title="All 2 branches missed.">                it.estado == EstadoEnvio.DESPACHADO</span>
+            }
+
+<span class="nc" id="L276">            Text(</span>
+<span class="nc" id="L277">                text = &quot;Destinatarios y estado del envío (${envios.size})&quot;,</span>
+<span class="nc" id="L278">                style = MaterialTheme.typography.titleSmall</span>
+            )
+
+<span class="nc bnc" id="L281" title="All 2 branches missed.">            if (envios.isEmpty()) {</span>
+
+<span class="nc" id="L283">                Text(</span>
+<span class="nc" id="L284">                    &quot;Sin registros de envío.&quot;,</span>
+<span class="nc" id="L285">                    style = MaterialTheme.typography.bodySmall</span>
+                )
+
+<span class="nc" id="L288">            } else {</span>
+
+<span class="nc" id="L290">                Text(</span>
+<span class="nc" id="L291">                    text = &quot;$despachados despachado(s) · ${envios.size - despachados} fallido(s)&quot;,</span>
+<span class="nc" id="L292">                    style = MaterialTheme.typography.labelMedium</span>
+                )
+            }
+
+            // Muestra el resultado individual de cada destinatario.
+<span class="nc" id="L297">            envios.forEach { envio -&gt;</span>
+
+<span class="nc" id="L299">                FilaEnvio(</span>
+<span class="nc" id="L300">                    envio = envio,</span>
+<span class="nc" id="L301">                    apoderado = datos.apoderadoPorId(</span>
+<span class="nc" id="L302">                        envio.apoderadoId</span>
+                    )
+                )
+<span class="nc" id="L305">            }</span>
+<span class="nc" id="L306">        }</span>
+
+        // =============================================
+        // EV3: CONTROL DE ERRORES DEL PDF
+        // =============================================
+
+        // Informa si el documento no puede abrirse.
+<span class="nc bnc" id="L313" title="All 2 branches missed.">        errorPdf?.let { mensaje -&gt;</span>
+
+<span class="nc" id="L315">            AlertDialog(</span>
+<span class="nc" id="L316">                onDismissRequest = {</span>
+<span class="nc" id="L317">                    errorPdf = null</span>
+<span class="nc" id="L318">                },</span>
+
+                icon = {
+                    Icon(
+                        imageVector = Icons.Filled.Error,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                },
+
+                title = {
+                    Text(&quot;No se pudo abrir el PDF&quot;)
+                },
+
+<span class="nc" id="L332">                text = {</span>
+<span class="nc bnc" id="L333" title="All 4 branches missed.">                    Text(mensaje)</span>
+<span class="nc" id="L334">                },</span>
+
+<span class="nc" id="L336">                confirmButton = {</span>
+
+<span class="nc bnc" id="L338" title="All 4 branches missed.">                    TextButton(</span>
+<span class="nc" id="L339">                        onClick = {</span>
+<span class="nc" id="L340">                            errorPdf = null</span>
+<span class="nc" id="L341">                        }</span>
+                    ) {
+                        Text(&quot;Aceptar&quot;)
+<span class="nc" id="L344">                    }</span>
+<span class="nc" id="L345">                }</span>
+            )
+<span class="nc" id="L347">        }</span>
+<span class="nc" id="L348">    }</span>
+<span class="nc" id="L349">}</span>
+
+/**
+ * Muestra el canal y estado del envío de un destinatario.
+ */
+@Composable
+private fun FilaEnvio(
+    envio: EnvioDestinatario,
+    apoderado: Apoderado?
+<span class="nc" id="L358">) {</span>
+
+    // Diferencia visualmente los envíos correctos y fallidos.
+<span class="nc bnc" id="L361" title="All 2 branches missed.">    val fallido = envio.estado == EstadoEnvio.FALLIDO</span>
+
+<span class="nc bnc" id="L363" title="All 2 branches missed.">    val colorEstado = if (fallido) {</span>
+<span class="nc" id="L364">        MaterialTheme.colorScheme.error</span>
+<span class="nc" id="L365">    } else {</span>
+<span class="nc" id="L366">        MaterialTheme.colorScheme.primary</span>
+    }
+
+<span class="nc bnc" id="L369" title="All 2 branches missed.">    val iconoEstado: ImageVector = if (fallido) {</span>
+<span class="nc" id="L370">        Icons.Filled.Error</span>
+    } else {
+<span class="nc" id="L372">        Icons.Filled.CheckCircle</span>
+    }
+
+<span class="nc bnc" id="L375" title="All 2 branches missed.">    Card(</span>
+<span class="nc" id="L376">        modifier = Modifier.fillMaxWidth()</span>
+<span class="nc" id="L377">    ) {</span>
+
+<span class="nc bnc" id="L379" title="All 4 branches missed.">        Row(</span>
+<span class="nc" id="L380">            modifier = Modifier.padding(12.dp),</span>
+<span class="nc" id="L381">            verticalAlignment = Alignment.CenterVertically,</span>
+<span class="nc" id="L382">            horizontalArrangement = Arrangement.spacedBy(12.dp)</span>
+        ) {
+
+<span class="nc" id="L385">            Icon(</span>
+<span class="nc" id="L386">                imageVector = iconoEstado,</span>
+<span class="nc" id="L387">                contentDescription = envio.estado.etiqueta,</span>
+<span class="nc" id="L388">                tint = colorEstado</span>
+            )
+
+<span class="nc" id="L391">            Column(</span>
+<span class="nc" id="L392">                modifier = Modifier.weight(1f)</span>
+            ) {
+
+<span class="nc" id="L395">                Text(</span>
+<span class="nc bnc" id="L396" title="All 4 branches missed.">                    apoderado?.nombreCompleto ?: envio.apoderadoId,</span>
+<span class="nc" id="L397">                    style = MaterialTheme.typography.titleSmall</span>
+                )
+
+<span class="nc" id="L400">                Text(</span>
+<span class="nc" id="L401">                    &quot;${envio.canal.etiqueta} · ${envio.estado.etiqueta}&quot;,</span>
+<span class="nc" id="L402">                    color = colorEstado</span>
+                )
+
+                // Muestra el motivo cuando el despacho falla.
+<span class="nc bnc" id="L406" title="All 6 branches missed.">                if (fallido &amp;&amp; envio.detalle.isNotBlank()) {</span>
+
+<span class="nc" id="L408">                    Text(</span>
+<span class="nc" id="L409">                        text = envio.detalle,</span>
+<span class="nc" id="L410">                        style = MaterialTheme.typography.bodySmall,</span>
+<span class="nc" id="L411">                        color = MaterialTheme.colorScheme.onSurfaceVariant</span>
+                    )
+                }
+<span class="nc" id="L414">            }</span>
+
+            // Identifica el canal utilizado para el despacho.
+<span class="nc" id="L417">            Icon(</span>
+<span class="nc" id="L418">                imageVector = envio.canal.icono(),</span>
+<span class="nc" id="L419">                contentDescription = envio.canal.etiqueta,</span>
+<span class="nc" id="L420">                tint = MaterialTheme.colorScheme.onSurfaceVariant</span>
+            )
+<span class="nc" id="L422">        }</span>
+<span class="nc" id="L423">    }</span>
+<span class="nc" id="L424">}</span>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

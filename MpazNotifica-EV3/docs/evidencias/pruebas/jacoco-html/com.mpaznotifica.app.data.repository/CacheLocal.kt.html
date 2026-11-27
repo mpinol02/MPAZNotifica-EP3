@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CacheLocal.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.data.repository</a> &gt; <span class="el_source">CacheLocal.kt</span></div><h1>CacheLocal.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.data.repository
+
+import com.mpaznotifica.app.model.Apoderado
+import com.mpaznotifica.app.model.CanalDespacho
+import com.mpaznotifica.app.model.Comunicacion
+import com.mpaznotifica.app.model.EnvioDestinatario
+import com.mpaznotifica.app.model.Estudiante
+import com.mpaznotifica.app.model.Taller
+import com.mpaznotifica.app.model.Usuario
+import kotlinx.coroutines.flow.Flow
+
+/** Estudiante tal como lo entrega el servidor: incluye su apoderado (clave foránea en Room). */
+<span class="fc" id="L13">data class EstudianteRemoto(val estudiante: Estudiante, val apoderadoId: String)</span>
+
+/** Datos de referencia descargados del servidor. */
+<span class="fc" id="L16">data class ReferenciaRemota(</span>
+<span class="fc" id="L17">    val usuarios: List&lt;Usuario&gt;,</span>
+<span class="fc" id="L18">    val talleres: List&lt;Taller&gt;,</span>
+<span class="fc" id="L19">    val estudiantes: List&lt;EstudianteRemoto&gt;,</span>
+<span class="fc" id="L20">    val apoderados: List&lt;Apoderado&gt;</span>
+)
+
+/**
+ * Caché local (Room) de lo que el servidor entrega. La interfaz permite probar el repositorio en
+ * JVM con una implementación en memoria; la real es [RoomCache].
+ */
+interface CacheLocal {
+    val usuarios: Flow&lt;List&lt;Usuario&gt;&gt;
+    val talleres: Flow&lt;List&lt;Taller&gt;&gt;
+    val estudiantes: Flow&lt;List&lt;Estudiante&gt;&gt;
+    val apoderados: Flow&lt;List&lt;Apoderado&gt;&gt;
+    val comunicaciones: Flow&lt;List&lt;Comunicacion&gt;&gt;
+    val envios: Flow&lt;List&lt;EnvioDestinatario&gt;&gt;
+
+    /** Primera apertura: deja una copia inicial de los datos de demostración para ver algo sin red. */
+    suspend fun asegurarDatosIniciales()
+
+    suspend fun buscarUsuario(correo: String): Usuario?
+
+    /** Inserta o actualiza los datos de referencia (sin tocar la clave local de los usuarios). */
+    suspend fun guardarReferencia(referencia: ReferenciaRemota)
+
+    /** Deja la bitácora local idéntica a la del servidor. */
+    suspend fun reemplazarBitacora(comunicaciones: List&lt;Comunicacion&gt;, envios: List&lt;EnvioDestinatario&gt;)
+
+    /** Agrega un comunicado recién registrado en el servidor. */
+    suspend fun guardarRegistro(comunicacion: Comunicacion, envios: List&lt;EnvioDestinatario&gt;)
+
+    suspend fun guardarCanal(apoderadoId: String, canal: CanalDespacho): Boolean
+}
+
+/**
+ * Base de datos del MODO LOCAL: una [CacheLocal] que además se puede restablecer. Es una base
+ * distinta de la caché del servidor (otro archivo Room): lo creado en modo local no se mezcla con
+ * lo del servidor ni se sincroniza con él.
+ */
+interface AlmacenLocal : CacheLocal {
+    /** Borra lo creado en modo local (comunicados y envíos) y restaura los datos de ejemplo. */
+    suspend fun restablecer()
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

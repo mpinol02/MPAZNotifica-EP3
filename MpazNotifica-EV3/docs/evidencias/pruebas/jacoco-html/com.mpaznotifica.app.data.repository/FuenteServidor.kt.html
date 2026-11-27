@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FuenteServidor.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">app</a> &gt; <a href="index.source.html" class="el_package">com.mpaznotifica.app.data.repository</a> &gt; <span class="el_source">FuenteServidor.kt</span></div><h1>FuenteServidor.kt</h1><pre class="source lang-java linenums">package com.mpaznotifica.app.data.repository
+
+import com.mpaznotifica.app.data.remote.ApiResult
+import com.mpaznotifica.app.data.remote.CausaError
+import com.mpaznotifica.app.data.remote.ComunicacionRegistrada
+import com.mpaznotifica.app.data.remote.MensajeriaApi
+import com.mpaznotifica.app.data.remote.SesionRemota
+import com.mpaznotifica.app.model.Apoderado
+import com.mpaznotifica.app.model.CanalDespacho
+import com.mpaznotifica.app.model.Comunicacion
+import com.mpaznotifica.app.model.EnvioDestinatario
+import com.mpaznotifica.app.model.Usuario
+
+/**
+ * MODO SERVIDOR: la ruta de la Experiencia 3. La API es la fuente de verdad y Room (otra base,
+ * distinta de la del modo local) es la caché que observan las pantallas. Solo delega en
+ * [MpazRepository]: lo que haga falta aquí depende de los TODO(E3-n) de ese repositorio y de
+ * [com.mpaznotifica.app.data.remote.FuenteRemota]; esta clase no los completa.
+ */
+<span class="nc" id="L20">class FuenteServidor(</span>
+<span class="nc" id="L21">    private val repositorio: MpazRepository,</span>
+<span class="nc" id="L22">    private val mensajeriaApi: () -&gt; MensajeriaApi</span>
+) : FuenteDatos {
+
+<span class="nc" id="L25">    override val esLocal: Boolean = false</span>
+
+<span class="nc" id="L27">    override val usuarios get() = repositorio.usuarios</span>
+<span class="nc" id="L28">    override val talleres get() = repositorio.talleres</span>
+<span class="nc" id="L29">    override val estudiantes get() = repositorio.estudiantes</span>
+<span class="nc" id="L30">    override val apoderados get() = repositorio.apoderados</span>
+<span class="nc" id="L31">    override val comunicaciones get() = repositorio.comunicaciones</span>
+<span class="nc" id="L32">    override val envios get() = repositorio.envios</span>
+
+<span class="nc" id="L34">    override fun mensajeria(): MensajeriaApi = mensajeriaApi()</span>
+
+<span class="nc" id="L36">    override suspend fun asegurarDatosIniciales() = repositorio.asegurarDatosIniciales()</span>
+
+<span class="nc" id="L38">    override suspend fun buscarUsuario(correo: String): Usuario? = repositorio.buscarUsuario(correo)</span>
+
+    override suspend fun iniciarSesion(usuario: String, clave: String): ApiResult&lt;SesionRemota&gt; =
+<span class="nc" id="L41">        repositorio.iniciarSesionRemoto(usuario, clave)</span>
+
+<span class="nc" id="L43">    override suspend fun cerrarSesion(token: String) = repositorio.cerrarSesionRemota(token)</span>
+
+<span class="nc" id="L45">    override suspend fun sincronizar(): ApiResult&lt;Unit&gt; = repositorio.sincronizar()</span>
+
+    override suspend fun registrarEnvio(
+        comunicacion: Comunicacion,
+        destino: String?,
+        envios: List&lt;EnvioDestinatario&gt;
+<span class="nc" id="L51">    ): ApiResult&lt;ComunicacionRegistrada&gt; = repositorio.registrarEnvioRemoto(comunicacion, destino, envios)</span>
+
+    override suspend fun actualizarCanalPreferente(
+        actor: Usuario?,
+        apoderadoId: String,
+        canal: CanalDespacho
+<span class="nc" id="L57">    ): ApiResult&lt;Apoderado&gt; = repositorio.actualizarCanalRemoto(apoderadoId, canal)</span>
+
+    override suspend fun restablecer(): ApiResult&lt;Unit&gt; =
+<span class="nc" id="L60">        ApiResult.Error(&quot;Restablecer solo está disponible en el modo local.&quot;, CausaError.LOCAL)</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
