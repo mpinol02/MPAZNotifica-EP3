@@ -1,19 +1,32 @@
+# Archivos de Android Studio
 *.iml
 .gradle/
 .idea/
 .kotlin/
-/local.properties
+
+# Configuración local
+local.properties
 .DS_Store
-/build/
-app/build/
+
+# Archivos generados durante la compilación
 build/
-/captures/
+app/build/
+captures/
 .externalNativeBuild/
 .cxx/
 
-# Llave de evaluación: la pauta pide incluir el .jks, el APK firmado y su configuración en el repositorio
-
-# Llave de evaluación: la pauta pide incluir el .jks, el APK firmado y su configuración en el repositorio
+# Seguridad: almacenes de claves privadas
+*.jks
+*.keystore
 *.p12
 *.pfx
+
+# Credenciales y configuración privada de firma
+keystore.properties
 .env
+
+# EV3: permite incluir una plantilla de configuración
+!keystore.properties.example
+
+# Archivo temporal de credenciales
+keystore.txt
