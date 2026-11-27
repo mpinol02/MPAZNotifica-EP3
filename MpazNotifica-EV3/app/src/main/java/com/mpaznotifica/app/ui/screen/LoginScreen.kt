@@ -67,7 +67,8 @@ import com.mpaznotifica.app.viewmodel.MpazNotificaViewModel
  * Modo local: valida las credenciales almacenadas en Room.
  * Modo servidor: utiliza la autenticación remota.
  *
- * EV3: errores por campo, iconos y animaciones.
+ * EV3: validaciones, iconos de error, animaciones
+ * e indicador de progreso.
  */
 @Composable
 fun LoginScreen(
@@ -76,39 +77,63 @@ fun LoginScreen(
 ) {
 
     // Estado de los campos del formulario.
-    var usuario by remember { mutableStateOf("") }
-    var clave by remember { mutableStateOf("") }
+    var usuario by remember {
+        mutableStateOf("")
+    }
+
+    var clave by remember {
+        mutableStateOf("")
+    }
 
     // Controla la visibilidad de la contraseña.
-    var claveVisible by remember { mutableStateOf(false) }
+    var claveVisible by remember {
+        mutableStateOf(false)
+    }
 
     // Controla la animación de entrada.
-    var contenidoVisible by remember { mutableStateOf(false) }
+    var contenidoVisible by remember {
+        mutableStateOf(false)
+    }
 
+    // Controla el diálogo de configuración del servidor.
     var mostrarServidor by rememberSaveable {
         mutableStateOf(false)
     }
 
-    // Obtiene los estados del ViewModel.
+    // Observa los estados publicados por el ViewModel.
     val errores by viewModel.erroresLogin.collectAsState()
-    val errorCredenciales by viewModel.errorCredenciales.collectAsState()
+
+    val errorCredenciales by
+    viewModel.errorCredenciales.collectAsState()
+
     val ingresando by viewModel.ingresando.collectAsState()
+
     val urlServidor by viewModel.urlServidor.collectAsState()
+
     val modoLocal by viewModel.modoLocal.collectAsState()
 
     val foco = LocalFocusManager.current
 
     val errorUsuario = errores.usuario
+
     val errorClave = errores.clave
 
-    // Activa la animación al mostrar la pantalla.
+    // Activa la animación al ingresar a la pantalla.
     LaunchedEffect(Unit) {
         contenidoVisible = true
     }
 
     // Envía las credenciales al ViewModel.
     fun ingresar() {
+
+        // EV3: evita solicitar otro inicio de sesión
+        // mientras existe una operación en curso.
+        if (viewModel.ingresando.value) {
+            return
+        }
+
         foco.clearFocus()
+
         viewModel.iniciarSesion(
             usuario,
             clave,
@@ -118,15 +143,18 @@ fun LoginScreen(
 
     // Cierra el diálogo del servidor al cambiar a modo local.
     LaunchedEffect(modoLocal) {
+
         if (modoLocal) {
             mostrarServidor = false
         }
     }
 
+    // El diálogo del servidor solo aparece en modo remoto.
     if (!modoLocal && mostrarServidor) {
 
         DialogoServidor(
             viewModel = viewModel,
+
             onCerrar = {
                 mostrarServidor = false
             }
@@ -136,19 +164,24 @@ fun LoginScreen(
     Scaffold { padding ->
 
         Column(
+
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .imePadding()
                 .padding(24.dp),
+
             horizontalAlignment = Alignment.CenterHorizontally,
+
             verticalArrangement = Arrangement.Center
         ) {
 
             // Animación de entrada del formulario.
             AnimatedVisibility(
+
                 visible = contenidoVisible,
+
                 enter = fadeIn(
                     animationSpec = tween(500)
                 ) + slideInVertically(
@@ -159,41 +192,62 @@ fun LoginScreen(
             ) {
 
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+
+                    horizontalAlignment =
+                        Alignment.CenterHorizontally,
+
+                    verticalArrangement =
+                        Arrangement.spacedBy(16.dp)
                 ) {
 
                     // Logotipo de la aplicación.
                     Image(
+
                         painter = painterResource(
                             id = R.drawable.logo_app
                         ),
-                        contentDescription = "Logo de MPAZ Notifica",
+
+                        contentDescription =
+                            "Logo de MPAZ Notifica",
+
                         modifier = Modifier.size(110.dp)
                     )
 
                     Text(
                         text = "MPAZ Notifica",
-                        style = MaterialTheme.typography.headlineMedium
+                        style =
+                            MaterialTheme.typography.headlineMedium
                     )
 
                     Text(
-                        text = "Ingreso de personal docente y directivo",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text =
+                            "Ingreso de personal docente y directivo",
+
+                        style =
+                            MaterialTheme.typography.bodyMedium,
+
+                        color =
+                            MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    // Campo de correo institucional.
+                    // =================================
+                    // CAMPO DE CORREO INSTITUCIONAL
+                    // =================================
+
                     OutlinedTextField(
+
                         value = usuario,
 
                         onValueChange = {
+
                             usuario = it
 
+                            // Limpia los errores al corregir el campo.
                             if (
                                 errorUsuario != null ||
                                 errorCredenciales != null
                             ) {
+
                                 viewModel.limpiarErroresLogin()
                             }
                         },
@@ -203,54 +257,84 @@ fun LoginScreen(
                         },
 
                         leadingIcon = {
+
                             Icon(
-                                Icons.Filled.Email,
+                                imageVector = Icons.Filled.Email,
                                 contentDescription = null
                             )
                         },
 
-                        // Muestra el icono cuando existe un error.
+                        // Muestra un icono cuando el correo es inválido.
                         trailingIcon = if (errorUsuario != null) {
+
                             {
+
                                 Icon(
-                                    imageVector = Icons.Filled.ErrorOutline,
-                                    contentDescription = "Campo con error",
-                                    tint = MaterialTheme.colorScheme.error
+
+                                    imageVector =
+                                        Icons.Filled.ErrorOutline,
+
+                                    contentDescription =
+                                        "Error en el correo institucional",
+
+                                    tint =
+                                        MaterialTheme.colorScheme.error,
+
+                                    modifier = Modifier.size(24.dp)
                                 )
                             }
+
                         } else {
+
                             null
                         },
 
                         isError = errorUsuario != null,
+
                         supportingText = apoyo(errorUsuario),
+
                         singleLine = true,
 
+                        // Evita modificar las credenciales durante la carga.
+                        enabled = !ingresando,
+
                         keyboardOptions = KeyboardOptions(
+
                             keyboardType = KeyboardType.Email,
+
                             imeAction = ImeAction.Next
                         ),
 
                         keyboardActions = KeyboardActions(
+
                             onNext = {
-                                foco.moveFocus(FocusDirection.Down)
+
+                                foco.moveFocus(
+                                    FocusDirection.Down
+                                )
                             }
                         ),
 
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    // Campo de contraseña.
+                    // =================================
+                    // CAMPO DE CONTRASEÑA
+                    // =================================
+
                     OutlinedTextField(
+
                         value = clave,
 
                         onValueChange = {
+
                             clave = it
 
                             if (
                                 errorClave != null ||
                                 errorCredenciales != null
                             ) {
+
                                 viewModel.limpiarErroresLogin()
                             }
                         },
@@ -260,8 +344,9 @@ fun LoginScreen(
                         },
 
                         leadingIcon = {
+
                             Icon(
-                                Icons.Filled.Lock,
+                                imageVector = Icons.Filled.Lock,
                                 contentDescription = null
                             )
                         },
@@ -269,60 +354,110 @@ fun LoginScreen(
                         trailingIcon = {
 
                             Row(
-                                verticalAlignment = Alignment.CenterVertically
+
+                                verticalAlignment =
+                                    Alignment.CenterVertically,
+
+                                horizontalArrangement =
+                                    Arrangement.spacedBy(4.dp),
+
+                                modifier = Modifier.padding(
+                                    start = 4.dp
+                                )
                             ) {
 
-                                // EV3: muestra el error sin quitar el botón del ojo.
+                                // EV3: muestra el icono de error
+                                // sin eliminar el botón de visibilidad.
                                 if (errorClave != null) {
 
                                     Icon(
-                                        imageVector = Icons.Filled.ErrorOutline,
-                                        contentDescription = "Error en la clave",
-                                        tint = MaterialTheme.colorScheme.error
+
+                                        imageVector =
+                                            Icons.Filled.ErrorOutline,
+
+                                        contentDescription =
+                                            "Error en la clave",
+
+                                        tint =
+                                            MaterialTheme.colorScheme.error,
+
+                                        modifier =
+                                            Modifier.size(24.dp)
                                     )
                                 }
 
                                 // Permite mostrar u ocultar la contraseña.
                                 IconButton(
+
+                                    enabled = !ingresando,
+
                                     onClick = {
+
                                         claveVisible = !claveVisible
                                     }
                                 ) {
 
                                     Icon(
-                                        imageVector = if (claveVisible) {
-                                            Icons.Filled.VisibilityOff
-                                        } else {
-                                            Icons.Filled.Visibility
-                                        },
 
-                                        contentDescription = if (claveVisible) {
-                                            "Ocultar clave"
-                                        } else {
-                                            "Mostrar clave"
-                                        }
+                                        imageVector =
+                                            if (claveVisible) {
+
+                                                Icons.Filled.VisibilityOff
+
+                                            } else {
+
+                                                Icons.Filled.Visibility
+                                            },
+
+                                        contentDescription =
+                                            if (claveVisible) {
+
+                                                "Ocultar clave"
+
+                                            } else {
+
+                                                "Mostrar clave"
+                                            },
+
+                                        // El botón del ojo mantiene
+                                        // un color diferente al error.
+                                        tint =
+                                            MaterialTheme.colorScheme
+                                                .onSurfaceVariant
                                     )
                                 }
                             }
                         },
 
-                        // Destaca el campo y muestra su mensaje.
+                        // Destaca el campo y muestra el mensaje.
                         isError = errorClave != null,
+
                         supportingText = apoyo(errorClave),
+
                         singleLine = true,
 
-                        visualTransformation = if (claveVisible) {
-                            VisualTransformation.None
-                        } else {
-                            PasswordVisualTransformation()
-                        },
+                        enabled = !ingresando,
+
+                        // Oculta la contraseña cuando corresponde.
+                        visualTransformation =
+                            if (claveVisible) {
+
+                                VisualTransformation.None
+
+                            } else {
+
+                                PasswordVisualTransformation()
+                            },
 
                         keyboardOptions = KeyboardOptions(
+
                             keyboardType = KeyboardType.Password,
+
                             imeAction = ImeAction.Done
                         ),
 
                         keyboardActions = KeyboardActions(
+
                             onDone = {
                                 ingresar()
                             }
@@ -331,39 +466,70 @@ fun LoginScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    // Anima el mensaje de credenciales incorrectas.
+                    // =================================
+                    // ERROR DE AUTENTICACIÓN
+                    // =================================
+
                     AnimatedVisibility(
+
                         visible = errorCredenciales != null,
+
                         enter = fadeIn(tween(250)) +
                                 expandVertically(tween(250)),
+
                         exit = fadeOut(tween(200)) +
                                 shrinkVertically(tween(200))
                     ) {
 
                         AvisoCard(
+
                             texto = errorCredenciales.orEmpty(),
+
                             icono = Icons.Filled.ErrorOutline,
+
                             esError = true
                         )
                     }
 
-                    // Impide realizar dos inicios de sesión simultáneos.
+                    // =================================
+                    // BOTÓN DE INICIO DE SESIÓN
+                    // =================================
+
                     Button(
+
                         onClick = {
                             ingresar()
                         },
+
                         enabled = !ingresando,
+
                         modifier = Modifier.fillMaxWidth()
                     ) {
 
-                        // Muestra un indicador mientras valida las credenciales.
+                        // Indicador de progreso mientras valida la sesión.
                         if (ingresando) {
 
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
+                            Row(
+
+                                verticalAlignment =
+                                    Alignment.CenterVertically,
+
+                                horizontalArrangement =
+                                    Arrangement.spacedBy(8.dp)
+                            ) {
+
+                                CircularProgressIndicator(
+
+                                    modifier = Modifier.size(18.dp),
+
+                                    strokeWidth = 2.dp,
+
+                                    color =
+                                        MaterialTheme.colorScheme.onPrimary
+                                )
+
+                                Text("Ingresando…")
+                            }
 
                         } else {
 
@@ -371,18 +537,28 @@ fun LoginScreen(
                         }
                     }
 
-                    // Configuración del servidor, solo en modo remoto.
+                    // =================================
+                    // CONFIGURACIÓN DEL SERVIDOR
+                    // =================================
+
                     if (!modoLocal) {
 
                         TextButton(
+
+                            enabled = !ingresando,
+
                             onClick = {
+
                                 mostrarServidor = true
                             }
                         ) {
 
                             Icon(
-                                Icons.Filled.Dns,
+
+                                imageVector = Icons.Filled.Dns,
+
                                 contentDescription = null,
+
                                 modifier = Modifier.size(18.dp)
                             )
 

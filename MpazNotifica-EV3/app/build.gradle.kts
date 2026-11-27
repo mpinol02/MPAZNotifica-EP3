@@ -1,4 +1,5 @@
 import java.util.Properties
+import org.gradle.testing.jacoco.tasks.JacocoReport
 
 plugins {
     alias(libs.plugins.android.application)
@@ -7,6 +8,13 @@ plugins {
 
     // KSP genera el código necesario de Room.
     alias(libs.plugins.ksp)
+
+    // EV3: herramienta de cobertura de código.
+    jacoco
+}
+
+jacoco {
+    toolVersion = "0.8.12"
 }
 
 // =====================================================
@@ -115,6 +123,15 @@ android {
 
     buildTypes {
 
+        debug {
+
+            // Cobertura de las pruebas unitarias JVM.
+            enableUnitTestCoverage = true
+
+            // EV3: cobertura de las pruebas del emulador.
+            enableAndroidTestCoverage = true
+        }
+
         release {
 
             isMinifyEnabled = false
@@ -126,12 +143,17 @@ android {
                 "proguard-rules.pro"
             )
 
-            // Aplica la firma únicamente cuando está configurada.
+            // Aplica la firma cuando está configurada.
             if (firmaCompleta) {
                 signingConfig =
                     signingConfigs.getByName("release")
             }
         }
+    }
+
+    // Utiliza la misma versión de JaCoCo en Android.
+    testCoverage {
+        jacocoVersion = "0.8.12"
     }
 
     compileOptions {
@@ -152,15 +174,14 @@ android {
     }
 
     // =================================================
-    // EV3: EMPAQUETADO DE RECURSOS
+    // EMPAQUETADO DE RECURSOS
     // =================================================
 
     packaging {
 
         resources {
 
-            // Combina las licencias duplicadas de las dependencias.
-            // Evita conflictos al generar el APK de pruebas.
+            // Combina las licencias duplicadas.
             merges += setOf(
                 "META-INF/LICENSE.md",
                 "META-INF/LICENSE-notice.md",
@@ -170,17 +191,17 @@ android {
     }
 
     // =================================================
-    // EV3: CONFIGURACIÓN DE JUNIT 5
+    // CONFIGURACIÓN DE PRUEBAS UNITARIAS
     // =================================================
 
     testOptions {
 
         unitTests.all {
 
-            // Ejecuta JUnit 5 y las pruebas antiguas con Vintage.
+            // Ejecuta JUnit 4, JUnit 5 y Kotest.
             it.useJUnitPlatform()
 
-            // Muestra los resultados de las pruebas en la terminal.
+            // Muestra los resultados en la terminal.
             it.testLogging {
 
                 events(
@@ -203,10 +224,8 @@ android {
 
 dependencies {
 
-    // Navegación entre pantallas.
+    // Navegación e iconos.
     implementation(libs.androidx.navigation.compose)
-
-    // Íconos de Material Design.
     implementation(libs.androidx.material.icons.extended)
 
     // =================================================
@@ -216,7 +235,6 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
 
-    // Genera las implementaciones de DAO y Room.
     ksp(libs.androidx.room.compiler)
 
     // =================================================
@@ -227,10 +245,9 @@ dependencies {
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp.core)
 
-    // Registro HTTP disponible únicamente en debug.
+    // Registro HTTP únicamente en debug.
     debugImplementation(libs.okhttp.logging)
 
-    // Corrutinas para operaciones asíncronas.
     implementation(libs.kotlinx.coroutines.android)
 
     // =================================================
@@ -249,28 +266,29 @@ dependencies {
     implementation(libs.androidx.material3)
 
     // =================================================
-    // PRUEBAS UNITARIAS JVM
+    // PRUEBAS JUNIT 4 Y JUNIT 5
     // =================================================
 
-    // Conserva las pruebas originales de JUnit 4.
     testImplementation(libs.junit)
-
-    // EV3: nuevas pruebas con JUnit 5.
     testImplementation(libs.junit.jupiter)
 
-    // Permite ejecutar JUnit 4 dentro de JUnit Platform.
     testRuntimeOnly(libs.junit.vintage.engine)
-
-    // Ejecutor de la plataforma de pruebas.
     testRuntimeOnly(libs.junit.platform.launcher)
 
-    // Corrutinas, simulaciones HTTP y objetos de prueba.
+    // =================================================
+    // PRUEBAS KOTEST
+    // =================================================
+
+    testImplementation(libs.kotest.runner)
+    testImplementation(libs.kotest.assertions)
+
+    // Simulaciones y pruebas de corrutinas.
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.mockk)
 
     // =================================================
-    // PRUEBAS INSTRUMENTADAS EN ANDROID
+    // PRUEBAS INSTRUMENTADAS
     // =================================================
 
     androidTestImplementation(libs.androidx.junit)
@@ -285,4 +303,141 @@ dependencies {
 
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+}
+
+// =====================================================
+// EV3: INFORME COMBINADO DE COBERTURA JACOCO
+// =====================================================
+
+tasks.register<JacocoReport>("jacocoTestReport") {
+
+    group = "verification"
+
+    description =
+        "Genera la cobertura de pruebas unitarias e instrumentadas"
+
+    // Ejecuta las pruebas unitarias antes del informe.
+    dependsOn("testDebugUnitTest")
+
+    reports {
+
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(true)
+
+        html.outputLocation.set(
+            layout.buildDirectory.dir(
+                "reports/jacoco/html"
+            )
+        )
+
+        xml.outputLocation.set(
+            layout.buildDirectory.file(
+                "reports/jacoco/cobertura.xml"
+            )
+        )
+
+        csv.outputLocation.set(
+            layout.buildDirectory.file(
+                "reports/jacoco/cobertura.csv"
+            )
+        )
+    }
+
+    // Excluye clases generadas automáticamente.
+    val exclusiones = listOf(
+        "**/R.class",
+        "**/R\$*.class",
+        "**/BuildConfig.*",
+        "**/Manifest*.*",
+        "**/*_Impl.class",
+        "**/*_Impl\$*.class",
+        "**/*ComposableSingletons*.*"
+    )
+
+    // Clases originales compiladas de Kotlin.
+    val clasesKotlin = fileTree(
+        layout.buildDirectory.dir(
+            "tmp/kotlin-classes/debug"
+        )
+    ) {
+        exclude(exclusiones)
+    }
+
+    // Clases originales compiladas de Java.
+    val clasesJava = fileTree(
+        layout.buildDirectory.dir(
+            "intermediates/javac/debug/classes"
+        )
+    ) {
+        exclude(exclusiones)
+    }
+
+    classDirectories.setFrom(
+        files(
+            clasesKotlin,
+            clasesJava
+        )
+    )
+
+    // Código fuente utilizado por el informe.
+    sourceDirectories.setFrom(
+        files(
+            "src/main/java",
+            "src/main/kotlin"
+        )
+    )
+
+    // Resultados de las pruebas unitarias JVM.
+    val coberturaUnitaria = fileTree(
+        layout.buildDirectory
+    ) {
+
+        include(
+            "jacoco/testDebugUnitTest.exec",
+            "outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec"
+        )
+    }
+
+    // Resultados de las pruebas instrumentadas Android.
+    val coberturaInstrumentada = fileTree(
+        layout.buildDirectory
+    ) {
+
+        include(
+            "outputs/code_coverage/debugAndroidTest/**/*.ec",
+            "outputs/code_coverage/connected/**/*.ec",
+            "outputs/connected_android_test_code_coverage/debugAndroidTest/**/*.ec"
+        )
+    }
+
+    // Combina ambos tipos de cobertura.
+    executionData.setFrom(
+        coberturaUnitaria,
+        coberturaInstrumentada
+    )
+
+    // Comprueba que existan resultados de ambos tipos.
+    doFirst {
+
+        check(coberturaUnitaria.files.isNotEmpty()) {
+            "No se encontraron resultados de cobertura unitaria."
+        }
+
+        check(coberturaInstrumentada.files.isNotEmpty()) {
+            "Ejecuta primero connectedDebugAndroidTest para generar la cobertura instrumentada."
+        }
+
+        println("Archivos de cobertura unitaria:")
+
+        coberturaUnitaria.files.forEach {
+            println(it.absolutePath)
+        }
+
+        println("Archivos de cobertura instrumentada:")
+
+        coberturaInstrumentada.files.forEach {
+            println(it.absolutePath)
+        }
+    }
 }
