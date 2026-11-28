@@ -654,11 +654,11 @@ Para esta evaluación se generó una llave exclusiva del proyecto:
 
     mpaz-evaluacion.jks
 
-El archivo `.jks` y las credenciales reales se mantienen fuera del repositorio público mediante `.gitignore`.
+El archivo `mpaz-evaluacion.jks` y su configuración de firma corresponden exclusivamente a esta evaluación académica.
 
 La plantilla `keystore.properties.example` permite conocer la configuración necesaria sin publicar contraseñas.
 
-La entrega del JKS y su configuración privada debe coordinarse con el docente, considerando que el proyecto base solicita estos archivos como parte de la evaluación.
+Por solicitud del docente, el JKS y su configuración de firma deben incorporarse al repositorio de evaluación con acceso restringido a los integrantes y al docente.
 
 ### Pasos para generar el APK
 
@@ -677,7 +677,7 @@ La entrega del JKS y su configuración privada debe coordinarse con el docente, 
 
    La ruta indicada es relativa al módulo `app`.
 
-   Los valores `REEMPLAZAR` deben sustituirse por las contraseñas privadas correspondientes.
+   Los valores `REEMPLAZAR` de la plantilla deben sustituirse por las contraseñas correspondientes cuando se configure un almacén de firma propio.
 
 3. Comprobar que Gradle reconoce la configuración:
 
@@ -760,27 +760,39 @@ La huella del certificado identifica al firmante, mientras que el hash SHA-256 d
 
 ### Protección de las claves
 
-Se actualizó `.gitignore` para impedir que se publiquen archivos privados de firma:
+Por solicitud del docente, se contempla incorporar los siguientes archivos exclusivos de la evaluación:
 
-- `*.jks`
-- `*.keystore`
-- `*.p12`
-- `*.pfx`
+- `mpaz-evaluacion.jks`
 - `keystore.properties`
-- `keystore.txt`
-- `.env`
+- `keystore.properties.example`
 
-El APK firmado y la plantilla de configuración se encuentran versionados en GitHub.
+El archivo `.gitignore` permite incorporar específicamente el almacén y la configuración de firma de MPAZ Notifica.
 
-Las contraseñas reales no deben publicarse en el repositorio.
+Se mantienen excluidos los demás almacenes de claves, archivos temporales y configuraciones personales:
 
-Para verificar que los archivos privados están excluidos:
+- Otros archivos `*.jks`.
+- `*.keystore`.
+- `*.p12`.
+- `*.pfx`.
+- `keystore.txt`.
+- `.env`.
+- `local.properties`.
 
-    git check-ignore -v mpaz-evaluacion.jks keystore.properties keystore.txt
+La llave de firma es exclusiva de esta evaluación académica y no debe reutilizarse en otros proyectos.
 
-Para comprobar que no están registrados en Git:
+El acceso a los archivos de firma debe mantenerse restringido. No se deben publicar credenciales en repositorios públicos.
 
-    git ls-files -- "*.jks" "keystore.properties" "keystore.txt"
+Para comprobar la configuración de firma:
+
+    .\gradlew.bat signingReport
+
+Para generar el APK firmado:
+
+    .\gradlew.bat assembleRelease
+
+Para verificar el certificado:
+
+    apksigner verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk
 
 Subir `versionCode` y `versionName` en `app/build.gradle.kts` cuando corresponda a una nueva versión de la aplicación.
 
@@ -952,11 +964,12 @@ Los informes HTML pueden consultarse descargando o clonando el repositorio y abr
 | Capturas funcionales incorporadas | 21 |
 | APK release firmado | Generado y verificado |
 | Integración REST | Pendiente |
-| Entrega privada del JKS | Sujeta a confirmación docente |
+| JKS y configuración de firma | Preparados según solicitud del docente |
 
 La versión entregada corresponde al alcance local funcional de MPAZ Notifica.
 
 La aplicación permite gestionar comunicados escolares mediante una arquitectura MVVM, persistencia Room, reglas de negocio diferenciadas por perfil, validaciones, recursos nativos y una interfaz desarrollada con Jetpack Compose y Material Design 3.
 
 La documentación y las evidencias permiten comprobar los resultados obtenidos durante el desarrollo de la Evaluación Parcial 3.
+
 

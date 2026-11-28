@@ -4,11 +4,11 @@
 .idea/
 .kotlin/
 
-# Configuración local
+# Configuracion local
 local.properties
 .DS_Store
 
-# Archivos generados durante la compilación
+# Archivos generados durante la compilacion
 build/
 app/build/
 captures/
@@ -21,12 +21,12 @@ captures/
 *.p12
 *.pfx
 
-# Credenciales y configuración privada de firma
+# Credenciales privadas
 keystore.properties
+keystore.txt
 .env
 
-# EV3: permite incluir una plantilla de configuración
-!keystore.properties.example
-
-# Archivo temporal de credenciales
-keystore.txt
+# EV3: archivos exclusivos de firma para la evaluacion
+!/mpaz-evaluacion.jks
+!/keystore.properties
+!/keystore.properties.example
